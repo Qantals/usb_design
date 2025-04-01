@@ -3,7 +3,7 @@ module crc5_r(
     input rst_n,
     input [6:0] self_addr,
     input rx_handshake_on,
-    output reg crc5_err,
+    output reg crc5_err, // no useful waveform for this signal, no error case
 
     // interface with phy
     input rx_lp_sop,
@@ -77,14 +77,16 @@ always @(posedge clk, negedge rst_n) begin
         rx_pid_en <= 1'b0;
 end
 
+
 /* link layer: addr */
 reg addr_ok; // seems like only rely on addr_match with clk control
 wire addr_match; // regardless of clk, check if rx_data == self_addr
 wire crc5_right; // regardless of clk, check if rx_data[7:3] match cout
 wire [10:0] d;
 wire [4:0] c_out;
+reg endp_bit; // set by myself, not shown in wave signal list
 
-assign addr_match = (rx_data == self_addr);
+assign addr_match = (rx_data[6:0] == self_addr);
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         addr_ok <= 1'b0;
@@ -92,13 +94,43 @@ always @(posedge clk, negedge rst_n) begin
         addr_ok <= addr_match;
 end
 
-assign d = {rx_data[2:0], self_addr};
+assign d = {rx_data[2:0], endp_bit, self_addr};
 assign crc5_right = (rx_data[7:3] == {cout[0], cout[1], cout[2], cout[3], cout[4]});
+
+// I take this as pulse at EOP
+always @(posedge clk, negedge rst_n) begin
+    if(~rst_n)
+        crc5_err <= 1'b0;
+    else if(crc5_err)
+        crc5_err <= 1'b0;
+    else if(rx_valid & rx_eop)
+        crc5_err <= ~crc5_right;
+    else
+        crc5_err <= crc5_err;
+end
 
 crc5 crc5_u0 (
     .c(5'h1f),
     .d(d),
     .c_out(cout)
 );
+
+always @(posedge clk, negedge rst_n) begin
+    if(~rst_n)
+        endp_bit <= 1'b0;
+    else if(rx_valid & addr_match)
+        endp_bit <= rx_data[7];
+    else
+        endp_bit <= endp_bit;
+end
+
+always @(posedge clk, negedge rst_n) begin
+    if(~rst_n)
+        rx_endp <= 4'b0;
+    else if(rx_valid & addr_ok & rx_eop) // I'm not sure if rx_eop is required
+        rx_endp <= {rx_data[2:0], endp_bit};
+    else
+        rx_endp <= rx_endp;
+end
 
 endmodule
