@@ -26,3 +26,9 @@ literally same as `crc5_r`.
 - case 2: TOKEN (OUT)
 - case 3: TOKEN (IN), HANDSHAKE (ACK)
 
+## control_t
+
+- case 0: **DATA0**
+- case 1: HANDSHAKE (ACK)
+- case 2: TOKEN (OUT) + **DATA0**
+- case 3: TOKEN (IN), HANDSHAKE (ACK)

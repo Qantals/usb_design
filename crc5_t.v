@@ -2,7 +2,7 @@ module crc5_t(
     input clk,
     input rst_n,
 
-    // interface with phy? TODO: `lp` -> `to` ?
+    // interface with `control_t`
     output tx_to_sop,
     output reg tx_to_eop,
     output tx_to_valid,

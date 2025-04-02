@@ -1,3 +1,5 @@
+# Guess from Deepseek, blind for waveform, no guarantee.
+
 2．数据链路层模块功能及子模块划分描述如下：
 （1）crc5_r模块：接收来自物理层的令牌包和握手包，以保证传输的控制内容无误；
 （2）crc16_r模块：接收来自物理层的数据包，以保证传输的数据内容无误；
