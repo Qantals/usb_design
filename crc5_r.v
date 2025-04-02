@@ -3,7 +3,7 @@ module crc5_r(
     input rst_n,
     input [6:0] self_addr,
     input rx_handshake_on,
-    output reg crc5_err, // TODO:no useful waveform for this signal, no error case
+    output reg crc5_err, // TODO: no useful waveform for this signal, no error case
 
     // interface with phy
     input rx_lp_sop,
@@ -28,15 +28,15 @@ wire [7:0] rx_data;
 assign rx_sop = rx_lp_sop;
 assign rx_eop = rx_lp_eop;
 assign rx_valid = rx_lp_valid;
-assign rx_lp_ready = 1'b1; // always ready
-// assign rx_ready = 1'bz;
+assign rx_lp_ready = rx_ready;
 assign rx_data = rx_lp_data;
 
+assign rx_ready = 1'b1;
 
 /* link layer: PID */
 reg pid_ok; // only available at TOKEN phase: start from SOP, end in EOP
 wire pid_h_l_ok; // check integrity of PID: regardless of clk, check if rx_data is PID checked correct, assume it always be PID
-wire pid_is_not_data; // check type of PID: regardless of clk, TODO:check rx_data[1:0] == 2'b11 means DATA? but DATA2=4'b0111 don't invoke
+wire pid_is_not_data; // check type of PID: regardless of clk, TODO: check rx_data[1:0] == 2'b11 means DATA? but DATA2=4'b0111 don't invoke
 
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
@@ -84,7 +84,7 @@ wire addr_match; // regardless of clk, check if rx_data == self_addr
 wire crc5_right; // regardless of clk, check if rx_data[7:3] match cout
 wire [10:0] d;
 wire [4:0] c_out;
-reg endp_bit; // TODO:set by myself, not shown in wave signal list
+reg endp_bit; // TODO: set by myself, not shown in wave signal list
 
 assign addr_match = (rx_data[6:0] == self_addr);
 always @(posedge clk, negedge rst_n) begin
@@ -127,7 +127,7 @@ end
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         rx_endp <= 4'b0;
-    else if(rx_valid & addr_ok & rx_eop) // TODO:I'm not sure if rx_eop is required
+    else if(rx_valid & addr_ok & rx_eop) // TODO: I'm not sure if rx_eop is required
         rx_endp <= {rx_data[2:0], endp_bit};
     else
         rx_endp <= rx_endp;
