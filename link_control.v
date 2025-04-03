@@ -4,16 +4,16 @@ module link_control(
 
     /* control */
     // from `crc5_r`
-    input rx_pid_en,
+    input rx_pid_en, // pulse at finish
     input [3:0] rx_pid,
     // from `crc16_r`
-    input rx_sop_en, // TODO: should be `rx_lt_sop_en` rather than `rx_sop_en`?
-    input rx_lt_eop_en,
+    input rx_sop_en, // pulse at start. TODO: should be `rx_lt_sop_en` rather than `rx_sop_en`?
+    input rx_lt_eop_en, // pulse at finish
     // from `crc5_t`
-    input tx_con_pid_en,
+    input tx_con_pid_en, // pulse at finish
     input [3:0] tx_con_pid,
     // from `control_t`
-    input tx_lp_eop_en,
+    input tx_lp_eop_en, // pulse at finish
 
     // enable
     output reg rx_data_on,      // to `crc16_r`
@@ -21,11 +21,11 @@ module link_control(
     output reg tx_data_on,      // to `control_t`
 
     // Register
-    input ms, // 1: master   0: slave
-    input [15:0] time_threshold, // How long can wait for a packet
-    input [5:0] delay_threshole, // TODO: should be `delay_threshold` rather than `delay_threshole`?
-    output reg time_out, // flag
-    output reg d_oe // transmission direction
+    input ms, // 1 = master, 0 = slave
+    input [15:0] time_threshold, // set overtime value
+    input [5:0] delay_threshole, // set delay value, TODO: should be `delay_threshold` rather than `delay_threshole`?
+    output reg time_out, // overtime flag, TODO: unknown behavior, for all cases is 1'b0
+    output reg d_oe // direction: 0 = RX, 1 = TX
 );
 
 wire slave_receive_wt;
