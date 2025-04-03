@@ -2,8 +2,9 @@ module control_t(
     input clk,
     input rst_n,
 
-    // interface with link_ctl
+    // interface with `link_controlctl`
     input tx_data_on,
+    output tx_lp_eop_en,
 
     // interface with `crc5_t` (TX TOKEN / HANDSHAKE)
     input tx_to_sop,
@@ -21,7 +22,6 @@ module control_t(
     input tx_lt_cancle, // TODO: unknown behavior: all cases are 1'b0
 
     // interface with phy
-    output tx_lp_eop_en, // TODO: unsure behavior for don't know meanings
     output reg tx_lp_sop,
     output reg tx_lp_eop,
     output reg tx_lp_valid,

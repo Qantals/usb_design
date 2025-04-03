@@ -1,9 +1,15 @@
 module crc5_r(
     input clk,
     input rst_n,
+
+    // Register
     input [6:0] self_addr,
-    input rx_handshake_on,
     output reg crc5_err, // TODO: no useful waveform for this signal, no error case
+
+    // interface with `link_controlctrl`
+    input rx_handshake_on,
+    output reg rx_pid_en, // at EOP, give pulse, only TOKEN, HANDSHAKE valid
+    output reg [3:0] rx_pid,
 
     // interface with phy
     input rx_lp_sop,
@@ -13,8 +19,6 @@ module crc5_r(
     input [7:0] rx_lp_data,
 
     // interface with link layer
-    output reg rx_pid_en, // at EOP, give pulse, only TOKEN, HANDSHAKE valid
-    output reg [3:0] rx_pid,
     output reg [3:0] rx_endp
 );
 

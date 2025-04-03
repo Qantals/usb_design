@@ -9,7 +9,7 @@ module crc5_t(
     input tx_to_ready,
     output reg [7:0] tx_to_data,
 
-    // TODO: unknown `con`, unknown direction
+    // interface with `link_controlctrl`
     output reg tx_con_pid_en,
     output [3:0] tx_con_pid,
 

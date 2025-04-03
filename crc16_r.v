@@ -2,10 +2,10 @@ module crc16_r( // works only DATA phase
     input clk,
     input rst_n,
 
-    // interface with link_ctrl
-    // TODO: may have naming error, should be: rx_lt_sop_en, rather than: rx_sop_en
+    // interface with `link_controlctrl`
+    // TODO: may have naming error, should be `rx_lt_sop_en` rather than `rx_sop_en`?
     input rx_data_on, // enable this module
-    output rx_lt_sop_en, // pulse, say this is DATA SOP
+    output rx_sop_en, // pulse, say this is DATA SOP
     output rx_lt_eop_en, // pulse, say this is DATA EOP
 
     // interface with phy
@@ -90,7 +90,7 @@ always @(posedge clk, negedge rst_n) begin
         data_reg <= data_reg;
 end
 
-assign rx_lt_sop_en = rx_data_on & rx_sop & ~rx_lt_sop;
+assign rx_sop_en = rx_data_on & rx_sop & ~rx_lt_sop;
 assign rx_lt_eop_en = rx_data_on & rx_eop & rx_lt_eop; // TODO: Is this strange?
 
 /* data, inner signal. TODO: do not know case of ready==0 */
