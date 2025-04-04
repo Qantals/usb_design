@@ -32,6 +32,13 @@ reg eop_reg;
 reg valid_reg;
 reg [7:0] data_reg;
 
+// data, inner signal
+wire packet_is_data;
+reg tran_en;
+wire tran_buf;
+
+
+/* interface with link layer: register staging */
 assign rx_lt_sop = sop_reg;
 assign rx_lt_eop = eop_reg;
 assign rx_lt_valid = valid_reg;
@@ -95,10 +102,6 @@ assign rx_sop_en = rx_data_on & rx_sop & ~rx_lt_sop;
 assign rx_lt_eop_en = rx_data_on & rx_eop & rx_lt_eop; // TODO: Is this strange?
 
 /* data, inner signal. TODO: do not know case of ready==0 */
-wire packet_is_data;
-reg tran_en;
-wire tran_buf;
-
 assign packet_is_data = rx_data_on && rx_sop && (rx_data[1:0] == 2'b11); // is this signal useless? 
 
 // TODO: I guess enable signal like this, but not sure.

@@ -99,12 +99,6 @@ usb_link usb_link_u0(
     .tx_lt_cancle    ( tx_lt_cancle    )
 );
 
-crc5 crc5_u0(
-    .c ( c ),
-    .d ( d ),
-    .c_out ( c_out )
-);
-
 
 // tb realization
 parameter PERIOD  = 20;
@@ -115,6 +109,11 @@ end
 
 initial begin
     #92 rst_n = 1'b1;
+end
+
+initial begin
+    # 22670;
+    $finish;
 end
 
 

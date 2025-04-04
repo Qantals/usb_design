@@ -195,6 +195,7 @@ always @(posedge clk, negedge rst_n) begin
     else if(rx_handshake_on | rx_data_on) // start counting: wait receiving HANDSHAKE (ACK) | wait receiving DATA0
         timer <= timer + 16'd1; // assume `time_out` can handle this, so `timer` do not need to stay at time_threshold
     else
+        timer <= 16'd0; // TODO: is it better stay? `timer <= timer`
 end
 
 
