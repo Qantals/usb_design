@@ -8,7 +8,7 @@ module crc16_r( // works only DATA phase
     output rx_sop_en, // pulse, say this is DATA SOP
     output rx_lt_eop_en, // pulse, say this is DATA EOP
 
-    // interface with phy
+    // interface with phy, but shared with `crc5_r` with `lp` in variable name
     input rx_sop,
     input rx_eop,
     input rx_valid,
@@ -24,7 +24,7 @@ module crc16_r( // works only DATA phase
     output [7:0] rx_lt_data
 );
 
-assign rx_ready = 1'b1;
+assign rx_ready = 1'bz;
 
 // interface with link layer: register staging
 reg sop_reg;
