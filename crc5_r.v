@@ -6,7 +6,7 @@ module crc5_r(
     input [6:0] self_addr,
     output reg crc5_err, // TODO: no useful waveform for this signal, no error case
 
-    // interface with `link_controlctrl`
+    // interface with `link_control`
     input rx_handshake_on,
     output reg rx_pid_en, // at EOP, give pulse, only TOKEN, HANDSHAKE valid
     output reg [3:0] rx_pid,
@@ -61,6 +61,8 @@ end
 assign pid_h_l_ok = (rx_data[3:0] == ~rx_data[7:4]);
 assign pid_is_not_data = (rx_data[2:0] != 3'b011);
 
+
+/* interface with `link_control` */
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         rx_pid <= 4'b0;

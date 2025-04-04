@@ -2,7 +2,7 @@ module control_t(
     input clk,
     input rst_n,
 
-    // interface with `link_controlctl`
+    // interface with `link_control`
     input tx_data_on,
     output tx_lp_eop_en,
 

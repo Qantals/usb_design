@@ -9,7 +9,7 @@ module crc5_t(
     input tx_to_ready,
     output reg [7:0] tx_to_data,
 
-    // interface with `link_controlctrl`
+    // interface with `link_control`
     output reg tx_con_pid_en,
     output [3:0] tx_con_pid,
 
@@ -67,7 +67,7 @@ always @(posedge clk, negedge rst_n) begin
         tx_to_data <= {~pid_reg, pid_reg}; // TODO: guess from waveform, but why wouldn't I use reset 8'h0 value?
 end
 
-// con
+/* interface with `link_control` */
 assign tx_con_pid = pid_reg;
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
