@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module crc5_r(
     input clk,
     input rst_n,

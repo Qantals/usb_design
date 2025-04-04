@@ -1,4 +1,4 @@
-`timescale  1ns / 1ps
+`timescale 1ns / 1ps
 `define CASE0
 
 module usb_link_top_tb ();

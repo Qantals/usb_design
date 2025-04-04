@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module usb_link(
     input clk,
     input rst_n,

@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module link_control(
     input clk,
     input rst_n,

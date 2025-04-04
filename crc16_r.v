@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module crc16_r( // works only DATA phase
     input clk,
     input rst_n,

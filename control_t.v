@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module control_t(
     input clk,
     input rst_n,
