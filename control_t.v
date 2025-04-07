@@ -1,8 +1,9 @@
+`timescale 1ns / 1ps
 module control_t(
     input clk,
     input rst_n,
 
-    // interface with `link_controlctl`
+    // interface with `link_control`
     input tx_data_on,
     output tx_lp_eop_en,
 
@@ -37,6 +38,7 @@ wire ready_buf;
 wire [7:0] data_buf;
 wire cancle_buf;
 
+assign ready_buf = ~tx_lp_valid | tx_lp_ready; // tx_lp_valid ? tx_lp_ready : 1'b1;
 
 /* interface with `crc5_t` and link layer: ready signal */
 assign tx_to_ready = ~tx_data_on & ready_buf; // tx_data_on ? 1'b0 : ready_buf;
@@ -44,48 +46,34 @@ assign tx_lt_ready = tx_data_on & ready_buf; // tx_data_on ? ready_buf : 1'b0;
 
 
 /* interface with phy */
-assign tx_lp_eop_en = tx_lp_valid & tx_lp_ready & tx_lp_sop; // TODO: unsure behavior for don't know meanings
+assign tx_lp_eop_en = tx_lp_valid & tx_lp_ready & tx_lp_eop; // TODO: unsure behavior for don't know meanings//1
 
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         tx_lp_sop <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_sop <= tx_lp_sop;
-    else if(valid_buf)
+        else if(ready_buf && valid_buf)
         tx_lp_sop <= sop_buf;
-    else
-        tx_lp_sop <= tx_lp_sop;
 end
+
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         tx_lp_eop <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_eop <= tx_lp_eop;
-    else if(valid_buf)
+        else if(ready_buf && valid_buf)
         tx_lp_eop <= eop_buf;
-    else
-        tx_lp_eop <= tx_lp_eop;
 end
+
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         tx_lp_data <= 8'h0;
-    else if(~ready_buf)
-        tx_lp_data <= tx_lp_data;
-    else if(valid_buf)
+        else if(ready_buf && valid_buf)
         tx_lp_data <= data_buf;
-    else
-        tx_lp_data <= tx_lp_data;
 end
 // TODO: unknown behavior: all cases are 1'b0
 always @(posedge clk, negedge rst_n) begin
     if(~rst_n)
         tx_lp_cancle <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_cancle <= tx_lp_cancle;
-    else if(valid_buf)
+    else if(ready_buf && valid_buf)
         tx_lp_cancle <= cancle_buf;
-    else
-        tx_lp_cancle <= tx_lp_cancle;
 end
 
 always @(posedge clk, negedge rst_n) begin
@@ -93,8 +81,6 @@ always @(posedge clk, negedge rst_n) begin
         tx_lp_valid <= 1'b0;
     else if(~ready_buf)
         tx_lp_valid <= tx_lp_valid;
-    else
-        tx_lp_valid <= valid_buf;
 end
 
 
@@ -105,6 +91,5 @@ assign valid_buf = tx_data_on ? tx_lt_valid : tx_to_valid;
 assign data_buf = tx_data_on ? tx_lt_data : tx_to_data;
 assign cancle_buf = tx_data_on & tx_lt_cancle; // tx_data_on ? tx_lt_cancle : 1'b0; // TODO: unknown behavior: all cases are 1'b0
 
-assign ready_buf = ~tx_lp_valid | tx_lp_ready; // tx_lp_valid ? tx_lp_ready : 1'b1;
 
 endmodule
