@@ -63,7 +63,7 @@ module crc5_r (
     crc5 crc5_u0 (
     .c(5'h1f),
     .d(d),
-    .c_out(cout)
+        .c_out(c_out)
     );
 
     assign d = {rx_lp_data[2:0], endp_bit, self_addr};
