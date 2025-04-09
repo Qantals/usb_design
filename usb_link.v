@@ -73,7 +73,7 @@ wire tx_to_valid;
 wire tx_to_ready;
 wire [7:0] tx_to_data;
 wire tx_con_pid_en;
-wire [7:0] tx_con_pid;
+wire [3:0] tx_con_pid;
 wire tx_data_on;
 wire tx_lp_eop_en;
 
