@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module crc5(c, d, c_out);
 input	[4:0]	c;
 input	[10:0]	d;
