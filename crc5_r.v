@@ -33,6 +33,7 @@ module crc5_r (
     /* get from phy */
     wire rx_lp_transok;
     assign rx_lp_transok = rx_lp_ready && rx_lp_valid;
+    assign rx_lp_ready = 1'b1;
     
     /* link layer: addr*/
     wire addr_match; // regardless of clk, check if rx_lp_data == self_addr
@@ -63,7 +64,7 @@ module crc5_r (
     crc5 crc5_u0 (
     .c(5'h1f),
     .d(d),
-        .c_out(c_out)
+    .c_out(c_out)
     );
 
     assign d = {rx_lp_data[2:0], endp_bit, self_addr};
