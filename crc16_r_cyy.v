@@ -78,7 +78,7 @@ module crc16_r( // works only DATA phase
 
     /* interface with link_control module */
     assign rx_sop_en = rx_data_on && rx_transok && rx_sop; 
-    assign rx_lt_eop_en = rx_data_on && rx_lt_valid && rx_lt_eop;
+    assign rx_lt_eop_en = rx_data_on && rx_lt_valid && rx_lt_ready && rx_lt_eop;
 
     /* regardless of clk,I think this signal is not used,maybe used to UVM of syn signal */
     //wire packet_is_data;

@@ -31,6 +31,10 @@ reg [3:0] pid_reg;
 reg [7:0] addr_reg;
 reg [3:0] endp_reg;
 
+wire [10:0] d;
+wire [4:0] c_out;//the output of crc5 module
+wire [4:0] crc_out;// flip c_out
+
 assign tx_transok = tx_valid && tx_ready; 
 assign tx_to_transok = tx_to_valid && tx_to_ready; 
 
@@ -153,10 +157,6 @@ always @(posedge clk, negedge rst_n) begin
 end
 
 // crc
-wire [10:0] d;
-wire [4:0] c_out;//the output of crc5 module
-wire [4:0] crc_out;// flip c_out
-
 assign d = {endp_reg, addr_reg};
 assign crc_out = {c_out[0], c_out[1], c_out[2], c_out[3], c_out[4]}; // reverse bit order
 
