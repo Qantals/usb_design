@@ -41,7 +41,7 @@ assign tx_to_transok = tx_to_valid && tx_to_ready;
 assign tx_to_sop = (send_cnt == 2'b00);
 assign tx_to_valid = valid_reg;
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_to_eop <= 1'b0;
     end else if (tx_transok && (tx_pid[1:0] == 2'b10)) begin
@@ -53,7 +53,7 @@ always @(posedge clk, negedge rst_n) begin
     end else;
 end
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_to_data <= 8'b11110000;
     end else if (tx_transok) begin
@@ -72,7 +72,7 @@ end
 /* interface with `link_control` */
 assign tx_con_pid = pid_reg;
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_con_pid_en <= 1'b0;
     end else if(tx_transok) begin
@@ -84,7 +84,7 @@ end
 
 
 /* interface with transfer layer */
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_ready <= 1'b1;
     end else if (tx_valid) begin
@@ -100,7 +100,7 @@ end
 
 /* inner signal */
 // TX register
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         pid_reg <= 4'b0000;
     end else if (tx_transok) begin
@@ -108,7 +108,7 @@ always @(posedge clk, negedge rst_n) begin
     end else;
 end
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         addr_reg <= 7'b0000000;
     end else if (tx_transok) begin
@@ -116,7 +116,7 @@ always @(posedge clk, negedge rst_n) begin
     end else;
 end
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         endp_reg <= 4'b0000;
     end else if (tx_transok) begin
@@ -124,7 +124,7 @@ always @(posedge clk, negedge rst_n) begin
     end else;
 end
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         valid_reg <= 1'b0;
     end else if (tx_transok) begin
@@ -140,7 +140,7 @@ end
 
 /* send_cnt only add when transmit token packet */
 
-always @(posedge clk, negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         send_cnt <= 2'b00;
     end else if (tx_to_transok) begin
