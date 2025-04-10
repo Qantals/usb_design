@@ -185,7 +185,7 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         slave_d_oe <= 1'b0;
-    end else if (slave_receive_rt || rx_lt_eop_en) begin
+    end else if (slave_receive_rt || rx_lt_eop_en && (!ms)) begin
         slave_d_oe <= 1'b1;
     end else if (delay_done) begin
         slave_d_oe <= 1'b0;
