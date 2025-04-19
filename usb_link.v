@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 module usb_link(
     input clk,
     input rst_n,
@@ -79,11 +78,11 @@ wire tx_data_on;
 wire tx_lp_eop_en;
 
 
-/* assign `crc16_r` to phy port */
+/* assign `crc16_r` to phy port 
 assign rx_sop = rx_lt_sop;
 assign rx_eop = rx_lt_eop;
 assign rx_valid = rx_lt_valid;
-assign rx_data = rx_lt_data;
+assign rx_data = rx_lt_data;*/
 
 
 /* instantiation */
@@ -108,7 +107,14 @@ crc5_r crc5_ru_u0(
     .rx_lp_data      ( rx_lp_data      ), // input [7:0]
 
     // interface with link layer
-    .rx_endp         ( rx_endp         ) // output [3:0]
+    .rx_endp         ( rx_endp         ), // output [3:0]
+
+    // interface with crc16_r module
+    .rx_sop          (rx_sop),//output
+    .rx_eop          (rx_eop),//output
+    .rx_valid        (rx_valid),//output
+    .rx_ready        (rx_ready),//input,always 1'bz according to waveform
+    .rx_data         (rx_data)//output [7:0]
 );
 
 
@@ -121,7 +127,7 @@ crc16_r crc16_ru_u0(
     .rx_sop_en    ( rx_sop_en    ), // output
     .rx_lt_eop_en ( rx_lt_eop_en ), // output
 
-    // interface with phy, but shared with `crc5_r` with `lp` in variable name
+    // interface with crc5_r, but shared with `crc5_r` with `lp` in variable name
     .rx_sop       ( rx_sop       ), // input
     .rx_eop       ( rx_eop       ), // input
     .rx_valid     ( rx_valid     ), // input

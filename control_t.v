@@ -39,73 +39,69 @@ wire [7:0] data_buf;
 wire cancle_buf;
 
 
-/* interface with `crc5_t` and link layer: ready signal */
-assign tx_to_ready = ~tx_data_on & ready_buf; // tx_data_on ? 1'b0 : ready_buf;
-assign tx_lt_ready = tx_data_on & ready_buf; // tx_data_on ? ready_buf : 1'b0;
+/* interface with `crc5_t` and transfer layer: ready signal */
+assign tx_to_ready = ~tx_data_on && ready_buf; // tx_data_on ? 1'b0 : ready_buf;
+assign tx_lt_ready = tx_data_on && ready_buf; // tx_data_on ? ready_buf : 1'b0;
 
-
-/* interface with phy */
-assign tx_lp_eop_en = tx_lp_valid & tx_lp_ready & tx_lp_sop; // TODO: unsure behavior for don't know meanings
+/* interface with link_control module */
+assign tx_lp_eop_en = tx_lp_valid & tx_lp_ready & tx_lp_eop; // TODO: unsure behavior for don't know meanings
 
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+    if (!rst_n) begin
         tx_lp_sop <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_sop <= tx_lp_sop;
-    else if(valid_buf)
+    end else if (ready_buf && valid_buf) begin
         tx_lp_sop <= sop_buf;
-    else
-        tx_lp_sop <= tx_lp_sop;
+    end else;  
 end
+
+
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+    if (!rst_n) begin
         tx_lp_eop <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_eop <= tx_lp_eop;
-    else if(valid_buf)
+    end else if (ready_buf && valid_buf) begin
         tx_lp_eop <= eop_buf;
-    else
-        tx_lp_eop <= tx_lp_eop;
+    end else;
 end
+
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        tx_lp_data <= 8'h0;
-    else if(~ready_buf)
-        tx_lp_data <= tx_lp_data;
-    else if(valid_buf)
+    if (!rst_n) begin
+        tx_lp_data <= 8'b00000000;
+    end else if (ready_buf && valid_buf) begin
         tx_lp_data <= data_buf;
-    else
-        tx_lp_data <= tx_lp_data;
+    end else;
 end
+
 // TODO: unknown behavior: all cases are 1'b0
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+    if (!rst_n) begin
         tx_lp_cancle <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_cancle <= tx_lp_cancle;
-    else if(valid_buf)
+    end else if (ready_buf && valid_buf) begin
         tx_lp_cancle <= cancle_buf;
-    else
-        tx_lp_cancle <= tx_lp_cancle;
+    end else;
 end
 
+/*  In the handshake protocol, the VALID signal cannot rely on the READY signal, 
+    and the VALID at the source will be pulled up when the data is valid,
+    so tx_lp_valid cannot be decided by ready_buf.
+*/
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+    if (!rst_n) begin
         tx_lp_valid <= 1'b0;
-    else if(~ready_buf)
-        tx_lp_valid <= tx_lp_valid;
-    else
-        tx_lp_valid <= valid_buf;
+    end else if (sop_buf && valid_buf) begin
+        tx_lp_valid <= 1'b1;
+    end else if (tx_lp_eop_en) begin
+        tx_lp_valid <= 1'b0;
+    end else;
 end
-
 
 /* buffer */
 assign sop_buf = tx_data_on ? tx_lt_sop : tx_to_sop;
 assign eop_buf = tx_data_on ? tx_lt_eop : tx_to_eop;
 assign valid_buf = tx_data_on ? tx_lt_valid : tx_to_valid;
 assign data_buf = tx_data_on ? tx_lt_data : tx_to_data;
-assign cancle_buf = tx_data_on & tx_lt_cancle; // tx_data_on ? tx_lt_cancle : 1'b0; // TODO: unknown behavior: all cases are 1'b0
+assign cancle_buf = tx_data_on && tx_lt_cancle;// TODO: unknown behavior: all cases are 1'b0
 
-assign ready_buf = ~tx_lp_valid | tx_lp_ready; // tx_lp_valid ? tx_lp_ready : 1'b1;
+/* I think the logic here is that the ready signal depends on the valid signal */
+assign ready_buf = tx_lp_valid ? tx_lp_ready : 1'b1;
 
 endmodule
