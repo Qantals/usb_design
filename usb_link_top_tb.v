@@ -251,7 +251,7 @@ initial begin
     # 640 rx_lp_data = 8'h08;
     # 640 rx_lp_data = 8'h58; // 1391 ns
     # 1639 rx_lp_data = 8'h00; // 3030 ns
-    # 20 rx_lp_data = 8'hc3; // 3051 ns
+    # 21 rx_lp_data = 8'hc3; // 3051 ns
     # 640 rx_lp_data = 8'h01; // 3691 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
         # 640 rx_lp_data = rx_lp_data + 8'd1;
@@ -384,9 +384,9 @@ end
 integer mycnt2;
 initial begin
     # 4851 rx_lp_data = 8'hc3;
-    # 620 rx_lp_data = 8'h01; // 5491 ns
+    # 640 rx_lp_data = 8'h01; // 5491 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 620 rx_lp_valid = rx_lp_data + 8'd1;
+        # 640 rx_lp_data = rx_lp_data + 8'd1;
     end
 end
 
@@ -429,7 +429,7 @@ end
 
 `ifdef FSDB
 initial begin
-	$fsdbDumpfile("tb_counter_case3.fsdb");
+	$fsdbDumpfile("tb_usb_case3.fsdb");
 	$fsdbDumpvars;
 end
 `endif

@@ -30,11 +30,11 @@ module crc5_r (
     output rx_valid
 );
 
-    /* get from phy */
+    /* get from phy and output to phy*/
     wire rx_lp_transok;
     assign rx_lp_transok = rx_lp_ready && rx_lp_valid;
     assign rx_lp_ready = 1'b1;
-    
+
     /* link layer: addr*/
     wire addr_match; // regardless of clk, check if rx_lp_data == self_addr
     reg addr_ok;//only rely on addr_match with clk control,delay one clk
@@ -73,10 +73,10 @@ module crc5_r (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             crc5_err <= 1'b0;
+        end else if (rx_lp_transok && (rx_lp_eop && !rx_lp_sop) && rx_pid[1:0] == 2'b01) begin
+            crc5_err <= ~crc5_right;
         end else if (crc5_err) begin
             crc5_err <= 1'b0;
-        end else if (rx_lp_transok && rx_lp_eop) begin
-            crc5_err <= ~crc5_right;
         end else;
     end
 
@@ -136,7 +136,7 @@ module crc5_r (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rx_pid_en <= 1'b0;
-        end else if (rx_pid_en_token || rx_pid_en_handshake) begin
+        end else if ((rx_pid_en_token || rx_pid_en_handshake) && rx_ready) begin
             rx_pid_en <= 1'b1;
         end else begin
             rx_pid_en <= 1'b0;

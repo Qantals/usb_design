@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module crc16_r( // works only DATA phase
     input clk,
     input rst_n,
@@ -35,9 +36,8 @@ module crc16_r( // works only DATA phase
     reg [7:0] data_reg;
 
     assign rx_transok = rx_valid && rx_ready;
-    assign rx_lt_transok = rx_lt_valid && rx_lt_ready; 
 
-    assign tran_buf = rx_data_on && rx_transok;  
+    assign tran_buf = rx_data_on && rx_transok;
 
     /* interface with transfer layer: register staging */
     always @(posedge clk or negedge rst_n) begin
@@ -61,7 +61,7 @@ module crc16_r( // works only DATA phase
            valid_reg <= 1'b0; 
         end else if (tran_buf) begin
             valid_reg <= rx_valid;
-        end else;
+        end else valid_reg <= 1'b0;
     end
 
     always @(posedge clk or negedge rst_n) begin
@@ -78,22 +78,21 @@ module crc16_r( // works only DATA phase
     assign rx_lt_data = data_reg;
 
     /* interface with link_control module */
-    assign rx_sop_en = tran_buf && rx_sop; 
-    assign rx_lt_eop_en = rx_data_on && rx_lt_transok && rx_lt_eop;
+    assign rx_sop_en = rx_data_on && rx_transok && rx_sop; 
+    assign rx_lt_eop_en = rx_data_on && rx_lt_valid && rx_lt_ready && rx_lt_eop;
 
     /* regardless of clk,I think this signal is not used,maybe used to UVM of syn signal */
     //wire packet_is_data;
-    //assign packet_is_data = (rx_data[7:4] == ~rx_data[3:0]) &&  rx_data[1:0]==2'b11)
-    
+    //assign packet_is_data = (rx_data[3:0] == 4'b0011) || (rx_data[3:0] == 4'b1011);
 
 
     /* I think this signal is not used, maybe used to UVM of syn signal */
     // always @(posedge clk, negedge rst_n) begin
     //     if (!rst_n) begin
     //         tran_en <= 1'b0;
-    //     end else if (tran_buf & rx_sop) begin
+    //     end else if (rx_data_on & rx_sop) begin
     //         tran_en <= 1'b1;
-    //     end else if (tran_buf & rx_eop) begin
+    //     end else if (rx_data_on & rx_eop) begin
     //         tran_en <= 1'b0;
     //     end else;
     // end

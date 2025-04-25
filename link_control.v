@@ -8,7 +8,7 @@ module link_control(
     input rx_pid_en, // pulse at finish
     input [3:0] rx_pid,
     // from `crc16_r`
-    input rx_sop_en, // pulse at start. TODO: should be `rx_lt_sop_en` rather than `rx_sop_en`?
+    input rx_sop_en, // pulse at start.rx_sop_en presents that begin to receive DATA packet.
     input rx_lt_eop_en, // pulse at finish
     // from `crc5_t`
     input tx_con_pid_en, // pulse at start, combine with `tx_lp_eop_en` show finish
@@ -19,198 +19,215 @@ module link_control(
     // enable
     output reg rx_data_on,      // to `crc16_r`
     output reg rx_handshake_on, // to `crc5_r`
-    output tx_data_on,      // to `control_t`. TODO: I change reg to wire type.
+    output reg tx_data_on,      // to `control_t`
 
     // Register
     input ms, // 1 = master, 0 = slave
     input [15:0] time_threshold, // set overtime value
     input [5:0] delay_threshole, // set delay value, TODO: should be `delay_threshold` rather than `delay_threshole`?
     output reg time_out, // overtime flag, TODO: unknown behavior, for all cases is 1'b0
-    output d_oe // direction (data_outputEnable): 0 = RX, 1 = TX. TODO: I change reg to wire type.
+    output d_oe //data_outputEnable
 );
 
-// ms
 // hs = handshake
 // wt = write token (OUT)
 // rt = read token (IN)
 // wr = write ready
-wire ms_receive_hs; // pulse at finish of receive HANDSHAKE ACK
-wire slave_receive_rt; // pulse at finish of receive TOKEN IN
-wire slave_receive_wt; // pulse at finish of receive TOKEN OUT
-reg slave_has_received_rt; // high at TX DATA, for TOKEN IN
+
 wire master_send_rt; // pulse at start of send TOKEN IN
 wire master_send_wt; // pulse at start of send TOKEN OUT
-reg master_finish_sending_rt; // high at interval between send TOKEN OUT and RX DATA
-reg [1:0] master_finish_sending_wr; // count at TOKEN OUT (1): ready, TX DATA start (2): process, TX DATA finish (0): finish
-
-// time and delay
-reg [15:0] timer;
-reg delay_on;
+wire slave_receive_rt; // pulse at finish of receive TOKEN IN
+wire slave_receive_wt; // pulse at finish of receive TOKEN OUT
+wire ms_receive_hs; // pulse at finish of receive HANDSHAKE ACK
+reg slave_has_received_rt; // high at TX DATA,for TOKEN IN
+// master_finish_sending_wr is used to decide the state of master(send OUT token)
+reg [1:0] master_finish_sending_wr;
+// master_finish_sending_rt is used to decide the state of master(send IN token)
+reg master_finish_sending_rt;
 reg [5:0] delay_cnt;
 wire delay_done;
-
-// direction
+reg delay_on;
 reg master_d_oe;
 reg slave_d_oe;
+reg [15:0] timer;
 
-// others
-reg rx_sop_en_regd;
-
-
-/* enable */
-assign tx_data_on = slave_has_received_rt || (master_finish_sending_wr == 2'd2);
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        rx_handshake_on <= 1'b0;
-    else if(tx_lp_eop_en && tx_data_on) // slave / master: finish send DATA0
-        rx_handshake_on <= 1'b1;
-    else if(ms_receive_hs)
-        rx_handshake_on <= 1'b0;
-    else;
-end
+/* Determine which packet is currently being received*/
+assign master_send_rt = ms && (tx_con_pid == 4'b1001) && tx_con_pid_en;
+assign master_send_wt = ms && (tx_con_pid == 4'b0001) && tx_con_pid_en;
+assign slave_receive_rt = !ms && (rx_pid == 4'b1001) && rx_pid_en;
+assign slave_receive_wt = !ms && (rx_pid == 4'b0001) && rx_pid_en;
+assign ms_receive_hs = (rx_pid == 4'b0010) && rx_pid_en;
 
 always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        rx_data_on <= 1'b0;
-    else if(slave_receive_wt | master_send_rt) // slave: finish receive TOKEN (OUT) | master: finish send TOKEN (IN)
-        rx_data_on <= 1'b1;
-    else if(rx_lt_eop_en)
-        rx_data_on <= 1'b0;
-    else;
-end
-
-
-
-
-/* Register */
-assign d_oe = ms ? master_d_oe : slave_d_oe;
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        time_out <= 1'b0;
-    else if(timer == time_threshold)
-        time_out <= 1'b1;
-    else
-        time_out <= time_out;       
-end
-
-
-/* ms */
-assign ms_receive_hs = (rx_pid == 4'b0010) && rx_pid_en; //assign ms_receive_hs = (rx_pid[1:0] == 2'b10) && rx_pid_en; 
-
-// slave
-assign slave_receive_wt = ~ms && (rx_pid == 4'b0001) && rx_pid_en; // valid at slave TOKEN (OUT)
-assign slave_receive_rt = ~ms && (rx_pid == 4'b1001) && rx_pid_en; // valid at slave TOKEN (IN)
-
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+    if (!rst_n) begin
         slave_has_received_rt <= 1'b0;
-    else if(slave_receive_rt)       
-            slave_has_received_rt <= 1'b1;
-    else if(tx_lp_eop_en) // TX finished
-            slave_has_received_rt <= 1'b0;
-    else;
+    end else if (slave_receive_rt) begin
+        slave_has_received_rt <= 1'b1;
+    end else if (tx_lp_eop_en) begin
+        slave_has_received_rt <= 1'b0;
+    end else;
 end
 
-// master
-assign master_send_wt = ms && (tx_con_pid == 4'b0001) && tx_con_pid_en; // valid at master TOKEN (OUT)
-assign master_send_rt = ms && (tx_con_pid == 4'b1001) && tx_con_pid_en; // valid at master TOKEN (IN)
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+
+
+/* the enable signal which control to send packet or receive packet*/
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
         master_finish_sending_wr <= 2'd0;
-    else if(master_send_wt)
-            master_finish_sending_wr <= 2'd1; // ready TX data
-    else if(master_finish_sending_wr == 2'd1 && tx_lp_eop_en)
-            master_finish_sending_wr <= 2'd2; // processing TX data
-    else if(master_finish_sending_wr == 2'd2 && tx_lp_eop_en)
-            master_finish_sending_wr <= 2'd0; // finish TX data
-    else;   
+    end else if (master_send_wt) begin
+        master_finish_sending_wr <= 2'd1; 
+    end else if (tx_lp_eop_en && master_finish_sending_wr == 2'd1) begin
+        master_finish_sending_wr <= 2'd2; 
+    end else if (tx_lp_eop_en && master_finish_sending_wr == 2'd2) begin
+        master_finish_sending_wr <= 2'd0;
+    end else;
 end
 
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        rx_data_on <= 1'b0;
+    end else if (slave_receive_wt || master_send_rt) begin //as a host, read operations will receive data; as a slave, write operations will receive data.
+        rx_data_on <= 1'b1;
+    end else if (rx_lt_eop_en) begin
+        rx_data_on <= 1'b0;
+    end else;
+end
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        rx_handshake_on <= 1'b0;
+    end else if (tx_lp_eop_en && (slave_has_received_rt || master_finish_sending_wr == 2'd2)) begin
+        rx_handshake_on <= 1'b1;
+    end else if (ms_receive_hs) begin
+        rx_handshake_on <= 1'b0;
+    end else;
+end
+
+// tx_data_on only uses in sending DATA packet
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        tx_data_on <= 1'b0;
+    end else if (slave_receive_rt || (tx_lp_eop_en && (master_finish_sending_wr == 2'd1))) begin
+        tx_data_on <= 1'b1;
+    end else if (tx_lp_eop_en) begin
+        tx_data_on <= 1'b0;
+    end else;
+end
+
+/* the signals which are related with delay */
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
         master_finish_sending_rt <= 1'b0;
-    else if (master_send_rt) 
-            master_finish_sending_rt <= 1'b1;
-    else if(tx_lp_eop_en) // TX finished
-            master_finish_sending_rt <= 1'b0;
-    else;
-
+    end else if (master_send_rt) begin
+        master_finish_sending_rt <= 1'b1; 
+    end else if (tx_lp_eop_en) begin
+        master_finish_sending_rt <= 1'b0; 
+    end else;
 end
 
-
-/* time */
-// delay
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        delay_on <= 1'b0;
-    else if(ms) 
-        if(tx_lp_eop_en && (~ms || master_finish_sending_rt || master_finish_sending_wr == 2'd2))
-        // master: finish send TOKEN (IN) -> receive DATA0 | finish send DATA0 -> receive HANDSHAKE (ACK)
-        // slave: finish send DATA0 -> receive HANDSHAKE (ACK) | finish send HANDSHAKE (ACK)
-            delay_on <= 1'b1;
-        else if(delay_done)
-            delay_on <= 1'b0;
-        else;
-end
-
-assign delay_done = delay_cnt == delay_threshole;
-
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
+/* delay_cnt*/
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
         delay_cnt <= 6'd0;
-    else if(delay_on) begin
-        if(delay_cnt == delay_threshole)
+    end else if (delay_on) begin
+        if (delay_cnt == delay_threshole) begin
             delay_cnt <= 6'd0;
-        else
+        end else begin
             delay_cnt <= delay_cnt + 6'd1;
-    end else
+        end
+    end else begin
         delay_cnt <= 6'd0;
+    end
 end
 
-// timer
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        timer <= 16'd0;
-    else if (rx_pid_en | rx_sop_en) // finish counting: receive HANDSHAKE (ACK) | receive DATA0
-        timer <= 16'd0;
-    else if(rx_handshake_on | rx_data_on) // start counting: wait receiving HANDSHAKE (ACK) | wait receiving DATA0
-        timer <= timer + 16'd1; // assume `time_out` can handle this, so `timer` do not need to stay at time_threshold
-    else
-        timer <= 16'd0; // TODO: is it better stay? `timer <= timer`
+/* delay_done */
+assign delay_done = (delay_cnt == delay_threshole);
+
+/* delay_on:
+    if slave: 
+    delay_on pull up in the situation of (DATA packet is sent,ready to receive handshake)
+    or in the situation of (HANDSHAKE packet is sent)
+
+    if master: delay_on pull up in the situation of (DATA packet is sent,ready to receive handshake)
+    or in the situation of (READ packet is sent)
+
+    no matter if master or slave ,delay_on pull down in delay_done
+*/
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        delay_on <= 1'b0;
+    end else if (ms) begin
+        if (tx_lp_eop_en && (master_finish_sending_rt || (master_finish_sending_wr == 2'd2))) begin
+            delay_on <= 1'b1;
+        end else if (delay_done) begin
+            delay_on <= 1'b0;
+        end else;
+    end else begin
+        if (tx_lp_eop_en) begin
+            delay_on <= 1'b1;
+        end else if (delay_done) begin
+            delay_on <= 1'b0;
+        end else;
+    end 
 end
 
-
-/* direction */
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        slave_d_oe <= 1'b0;
-    else if(slave_receive_rt | rx_lt_eop_en) // slave: finish receive TOKEN (IN) -> start send DATA0 | finish receive DATA0 -> start send HANDSHAKE (ACK)
-        slave_d_oe <= 1'b1;
-    else if(delay_done)
-        slave_d_oe <= 1'b0;
-    else;    
-end
-
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        master_d_oe <= 1'b1; // caution! default master is sending.
-    else if(ms_receive_hs | rx_lt_eop_en) // master: finish send DATA0 -> start receive HANDSHAKE (ACK) | finish send TOKEN (IN) -> start receive DATA0
-            master_d_oe <= 1'b1;
-    else if(delay_done)
+/* output: d_oe */
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        master_d_oe <= 1'b1;
+    end else if (delay_done) begin
         master_d_oe <= 1'b0;
-    else;
+    end else if (ms_receive_hs || (rx_lt_eop_en && ms)) begin
+        master_d_oe <= 1'b1;
+    end else;
 end
 
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        slave_d_oe <= 1'b0;
+    end else if (slave_receive_rt || rx_lt_eop_en && (!ms)) begin
+        slave_d_oe <= 1'b1;
+    end else if (delay_done) begin
+        slave_d_oe <= 1'b0;
+    end else;
+end
 
-/* others */
-always @(posedge clk, negedge rst_n) begin
-    if(~rst_n)
-        rx_sop_en_regd <= 1'b0;
-    else if(rx_sop_en)
-        rx_sop_en_regd <= 1'b1;
-    else if(rx_lt_eop_en)
-        rx_sop_en_regd <= 1'b0;
-    else;
+assign d_oe = ms ? master_d_oe : slave_d_oe;
+
+/* Timeout detection*/
+/* 
+    if slave:
+    1、timer count in the situation of (ready to receive HANDSHAKE packet),this is IN token
+    or in the situation of (ready to receive DATA packet),this is OUT token
+
+    2、timer become 0 in the situation of (ms_receive_hs)
+    or in the situation of (begin to recieve DATA packet,namely rx_sop_en == 1'b1)
+
+    if master:
+    1、timer count in the situation of (ready to receive HANDSHAKE packet),this is OUT token
+    or in the situation of (ready to receive DATA packet),this is IN token
+
+    2、timer become 0 in the situation of (ms_receive_hs)
+    or in the situation of (begin to recieve DATA packet,namely rx_sop_en == 1'b1)
+*/
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        timer <= 16'd0;
+    end else if (rx_handshake_on || rx_data_on) begin
+        timer <= timer + 16'd1;
+    end else if (ms_receive_hs || rx_sop_en) begin
+        timer <= 16'd0;
+    end else begin
+        timer <= 16'd0;
+    end
+end
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        time_out <= 1'b0;
+    end else if (timer == time_threshold) begin
+        time_out <= 1'b1;
+    end else;
 end
 
 endmodule
