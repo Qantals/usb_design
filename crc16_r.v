@@ -61,7 +61,7 @@ module crc16_r( // works only DATA phase
            valid_reg <= 1'b0; 
         end else if (tran_buf) begin
             valid_reg <= rx_valid;
-        end else;
+        end else valid_reg <= 1'b0;
     end
 
     always @(posedge clk or negedge rst_n) begin

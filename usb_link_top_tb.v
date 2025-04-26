@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define CASE0
+`define CASE3
 
 module usb_link_top_tb ();
 
@@ -251,7 +251,7 @@ initial begin
     # 640 rx_lp_data = 8'h08;
     # 640 rx_lp_data = 8'h58; // 1391 ns
     # 1639 rx_lp_data = 8'h00; // 3030 ns
-    # 20 rx_lp_data = 8'hc3; // 3051 ns
+    # 21 rx_lp_data = 8'hc3; // 3051 ns
     # 640 rx_lp_data = 8'h01; // 3691 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
         # 640 rx_lp_data = rx_lp_data + 8'd1;
@@ -260,8 +260,8 @@ end
 
 initial begin
     fork
-        # 9110 rx_lp_ready = 1'b0;
-        # 9750 rx_lp_ready = 1'b1;
+        # 9110 tx_lp_ready = 1'b0;
+        # 9750 tx_lp_ready = 1'b1;
     join
 end
 
@@ -293,25 +293,25 @@ initial begin
 end
 
 initial begin
-    # 16151 rx_lp_data = 8'dh2;
+    # 16151 rx_lp_data = 8'hd2;
 end
 
 integer mycnt1;
 initial begin
-    # 170 rx_lp_ready = 1'b0;
-    # 640 rx_lp_ready = 1'b1; // 810 ns
-    # 20 rx_lp_ready = 1'b0; // 830 ns
-    # 640 rx_lp_ready = 1'b1; // 1470 ns
-    # 20 rx_lp_ready = 1'b0; // 1490 ns
-    # 640 rx_lp_ready = 1'b1; // 2130 ns
-    # 2760 rx_lp_ready = 1'b0; // 4890 ns
+    # 170 tx_lp_ready = 1'b0;
+    # 640 tx_lp_ready = 1'b1; // 810 ns
+    # 20 tx_lp_ready = 1'b0; // 830 ns
+    # 640 tx_lp_ready = 1'b1; // 1470 ns
+    # 20 tx_lp_ready = 1'b0; // 1490 ns
+    # 640 tx_lp_ready = 1'b1; // 2130 ns
+    # 2760 tx_lp_ready = 1'b0; // 4890 ns
     for(mycnt1 = 0; mycnt1 < 15; mycnt1 = mycnt1 + 1) begin
         # 640;
-        rx_lp_ready = 1'b1;
+        tx_lp_ready = 1'b1;
         # 20;
-        rx_lp_ready = 1'b0;
+        tx_lp_ready = 1'b0;
     end // 14790 ns
-    # 640 rx_lp_ready = 1'b1;
+    # 640 tx_lp_ready = 1'b1;
 end
 
 initial begin
@@ -384,9 +384,9 @@ end
 integer mycnt2;
 initial begin
     # 4851 rx_lp_data = 8'hc3;
-    # 620 rx_lp_data = 8'h01; // 5491 ns
+    # 640 rx_lp_data = 8'h01; // 5491 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 620 rx_lp_valid = rx_lp_data + 8'd1;
+        # 640 rx_lp_data = rx_lp_data + 8'd1;
     end
 end
 
@@ -427,5 +427,11 @@ initial begin
 end
 `endif
 
+`ifdef FSDB
+initial begin
+	$fsdbDumpfile("tb_usb_case3.fsdb");
+	$fsdbDumpvars;
+end
+`endif
 
 endmodule

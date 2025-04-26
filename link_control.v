@@ -86,7 +86,7 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         rx_data_on <= 1'b0;
-    end else if (slave_receive_rt || master_send_rt) begin
+    end else if (slave_receive_wt || master_send_rt) begin //as a host, read operations will receive data; as a slave, write operations will receive data.
         rx_data_on <= 1'b1;
     end else if (rx_lt_eop_en) begin
         rx_data_on <= 1'b0;

@@ -64,7 +64,7 @@ module crc5_r (
     crc5 crc5_u0 (
     .c(5'h1f),
     .d(d),
-    .c_out(cout)
+    .c_out(c_out)
     );
 
     assign d = {rx_lp_data[2:0], endp_bit, self_addr};
@@ -73,10 +73,10 @@ module crc5_r (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             crc5_err <= 1'b0;
+        end else if (rx_lp_transok && (rx_lp_eop && !rx_lp_sop) && rx_pid[1:0] == 2'b01) begin
+            crc5_err <= ~crc5_right;
         end else if (crc5_err) begin
             crc5_err <= 1'b0;
-        end else if (rx_lp_transok && rx_lp_eop) begin
-            crc5_err <= ~crc5_right;
         end else;
     end
 
