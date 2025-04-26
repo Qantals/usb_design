@@ -40,9 +40,9 @@ wire slave_receive_rt; // pulse at finish of receive TOKEN IN
 wire slave_receive_wt; // pulse at finish of receive TOKEN OUT
 wire ms_receive_hs; // pulse at finish of receive HANDSHAKE ACK
 reg slave_has_received_rt; // high at TX DATA,for TOKEN IN
-// master_finish_sending_wr is used to decide the state of master(send OUT token)
+// master_finish_sending_wr is used to decide the state of master(send OUT token): level 1 = send TOKEN OUT, level 2 = send DATA, level 0 = no send
 reg [1:0] master_finish_sending_wr;
-// master_finish_sending_rt is used to decide the state of master(send IN token)
+// master_finish_sending_rt is used to decide the state of master(send IN token): level 1 = send TOKEN IN
 reg master_finish_sending_rt;
 reg [5:0] delay_cnt;
 wire delay_done;
@@ -50,6 +50,7 @@ reg delay_on;
 reg master_d_oe;
 reg slave_d_oe;
 reg [15:0] timer;
+reg rx_sop_en_regd; // register flopping for delay control
 
 /* Determine which packet is currently being received*/
 assign master_send_rt = ms && (tx_con_pid == 4'b1001) && tx_con_pid_en;
@@ -96,7 +97,7 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         rx_handshake_on <= 1'b0;
-    end else if (tx_lp_eop_en && (slave_has_received_rt || master_finish_sending_wr == 2'd2)) begin
+    end else if (tx_lp_eop_en && (slave_has_received_rt || master_finish_sending_wr == 2'd2)) begin // pulse && (level || level) signal = pulse signal
         rx_handshake_on <= 1'b1;
     end else if (ms_receive_hs) begin
         rx_handshake_on <= 1'b0;
@@ -107,7 +108,7 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_data_on <= 1'b0;
-    end else if (slave_receive_rt || (tx_lp_eop_en && (master_finish_sending_wr == 2'd1))) begin
+    end else if (slave_receive_rt || (tx_lp_eop_en && (master_finish_sending_wr == 2'd1))) begin // pulse || (pulse && level) signal = pulse signal
         tx_data_on <= 1'b1;
     end else if (tx_lp_eop_en) begin
         tx_data_on <= 1'b0;
@@ -157,7 +158,7 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         delay_on <= 1'b0;
     end else if (ms) begin
-        if (tx_lp_eop_en && (master_finish_sending_rt || (master_finish_sending_wr == 2'd2))) begin
+        if (tx_lp_eop_en && (master_finish_sending_rt || (master_finish_sending_wr == 2'd2))) begin // pulse && (level || level) signal = pulse signal
             delay_on <= 1'b1;
         end else if (delay_done) begin
             delay_on <= 1'b0;
@@ -213,13 +214,11 @@ assign d_oe = ms ? master_d_oe : slave_d_oe;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         timer <= 16'd0;
-    end else if (rx_handshake_on || rx_data_on) begin
+    end else if (ms_receive_hs || rx_sop_en_regd || rx_sop_en) begin // clear first: use level signal to clear (you can see `ms_receive_hs` as special level signal, any it is right)
+        timer <= 16'd0;
+    end else if (rx_handshake_on || rx_data_on) begin // count then: use level signal to count
         timer <= timer + 16'd1;
-    end else if (ms_receive_hs || rx_sop_en) begin
-        timer <= 16'd0;
-    end else begin
-        timer <= 16'd0;
-    end
+    end else;
 end
 
 always @(posedge clk or negedge rst_n) begin
@@ -227,6 +226,16 @@ always @(posedge clk or negedge rst_n) begin
         time_out <= 1'b0;
     end else if (timer == time_threshold) begin
         time_out <= 1'b1;
+    end else;
+end
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        rx_sop_en_regd <= 1'b0;
+    end else if (rx_sop_en) begin
+        rx_sop_en_regd <= 1'b1;
+    end else if (rx_lt_eop_en) begin
+        rx_sop_en_regd <= 1'b0;
     end else;
 end
 
