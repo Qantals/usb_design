@@ -55,6 +55,11 @@ wire tx_lt_ready;
 // reg [4:0] cnt = 5'h00;
 // reg [1:0] abc = 2'h3; // down count for master
 
+// my add
+reg my_tx_con_pid_en = 1'b0;
+reg [3:0] my_tx_con_pid = 4'h0;
+reg my_tx_lp_eop_en = 1'b0;
+
 
 // instantiation
 usb_link usb_link_u0(
@@ -96,7 +101,12 @@ usb_link usb_link_u0(
     .tx_lt_valid     ( tx_lt_valid     ),
     .tx_lt_ready     ( tx_lt_ready     ),
     .tx_lt_data      ( tx_lt_data      ),
-    .tx_lt_cancle    ( tx_lt_cancle    )
+    .tx_lt_cancle    ( tx_lt_cancle    ),
+
+    // my add
+    .my_tx_con_pid_en (my_tx_con_pid_en),
+    .my_tx_con_pid       (my_tx_con_pid),
+    .my_tx_lp_eop_en     (my_tx_lp_eop_en)
 );
 
 
@@ -202,8 +212,13 @@ initial begin
         tx_lt_data = tx_lt_data + 8'd1;
     end
 end
-`endif
 
+// my add
+initial begin
+    # 7390.5 my_tx_lp_eop_en = 1'b1;
+    #20 my_tx_lp_eop_en = 1'b0;
+end
+`endif
 
 /********************** case 1 **********************/
 `ifdef CASE1
@@ -269,8 +284,22 @@ initial begin
     # 9051 tx_valid = 1'b1;
     # 20 tx_valid = 1'b0;
 end
-`endif
 
+// my add
+initial begin
+    # 9070.5 my_tx_con_pid_en = 1'b1;
+    # 20 my_tx_con_pid_en = 1'b0;
+end
+
+initial begin
+    # 9070.5 my_tx_con_pid = 4'h2;
+end
+
+initial begin
+    # 9090.5 my_tx_lp_eop_en = 1'b1;
+    # 20 my_tx_lp_eop_en = 1'b0;
+end
+`endif
 
 /********************** case 2 **********************/
 `ifdef CASE2
@@ -350,6 +379,25 @@ initial begin
         # 660 tx_lt_data = tx_lt_data + 8'd1;
     end
 end
+
+// my add
+initial begin
+    # 130.5 my_tx_con_pid_en = 1'b1;
+    # 20 my_tx_con_pid_en = 1'b0;
+end
+
+initial begin
+    # 130.5 my_tx_con_pid = 4'h1;
+end
+
+initial begin
+    # 1470.5 my_tx_lp_eop_en = 1'b1;
+    # 20 my_tx_lp_eop_en = 1'b0;
+end
+initial begin
+    # 14770.5 my_tx_lp_eop_en = 1'b1;
+    # 20 my_tx_lp_eop_en = 1'b0;
+end
 `endif
 
 
@@ -424,6 +472,32 @@ initial begin
         # 12651 tx_valid = 1'b1;
         # 12671 tx_valid = 1'b0;
     join
+end
+
+// my add
+initial begin
+    # 130.5 my_tx_con_pid_en = 1'b1;
+    # 20 my_tx_con_pid_en = 1'b0;
+end
+initial begin
+    # 12670.5 my_tx_con_pid_en = 1'b1;
+    # 20 my_tx_con_pid_en = 1'b0;
+end
+
+initial begin
+    # 130.5 my_tx_con_pid = 4'h9;
+end
+initial begin
+    # 12670.5 my_tx_con_pid = 4'h2;
+end
+
+initial begin
+    # 1470.5 my_tx_lp_eop_en = 1'b1;
+    # 20 my_tx_lp_eop_en = 1'b0;
+end
+initial begin
+    # 12690.5 my_tx_lp_eop_en = 1'b1;
+    # 20 my_tx_lp_eop_en = 1'b0;
 end
 `endif
 

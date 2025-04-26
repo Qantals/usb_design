@@ -54,7 +54,12 @@ module usb_link(
     input tx_lt_valid,
     output tx_lt_ready,
     input [7:0] tx_lt_data,
-    input tx_lt_cancle
+    input tx_lt_cancle,
+
+    // my add
+    input my_tx_con_pid_en,
+    input [3:0] my_tx_con_pid,
+    input my_tx_lp_eop_en
 );
 
 wire rx_handshake_on;
@@ -211,10 +216,10 @@ link_control link_control_u0(
     .rx_sop_en       ( rx_sop_en       ), // input          `crc16_r`
     .rx_lt_eop_en    ( rx_lt_eop_en    ), // input          `crc16_r`
 
-    .tx_con_pid_en   ( tx_con_pid_en   ), // input          `crc5_t`
-    .tx_con_pid      ( tx_con_pid      ), // input [3:0]    `crc5_t`
+    .tx_con_pid_en   ( my_tx_con_pid_en   ), // input          `crc5_t`
+    .tx_con_pid      ( my_tx_con_pid      ), // input [3:0]    `crc5_t`
 
-    .tx_lp_eop_en    ( tx_lp_eop_en    ), // input          `control_t`
+    .tx_lp_eop_en    ( my_tx_lp_eop_en    ), // input          `control_t`
 
     // enable
     .rx_data_on      ( rx_data_on      ), // output, `crc16_r`
