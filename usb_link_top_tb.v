@@ -120,86 +120,86 @@ end
 /********************** case 0 **********************/
 `ifdef CASE0
 initial begin
-    ms = 1'b0;
-    time_threshold = 16'd200;
+    ms <= 1'b0;
+    time_threshold <= 16'd200;
 end
 
 initial begin
     fork
-        # 111 rx_lp_sop = 1'b1;
-        # 751 rx_lp_sop = 1'b0;
-        # 9051 rx_lp_sop = 1'b1;
+        # 111 rx_lp_sop <= 1'b1;
+        # 751 rx_lp_sop <= 1'b0;
+        # 9051 rx_lp_sop <= 1'b1;
     join
 end
 
 initial begin
     fork
-        # 1391 rx_lp_eop = 1'b1;
-        # 9030 rx_lp_eop = 1'b0;
-        # 9051 rx_lp_eop = 1'b1;
+        # 1391 rx_lp_eop <= 1'b1;
+        # 9030 rx_lp_eop <= 1'b0;
+        # 9051 rx_lp_eop <= 1'b1;
     join
 end
 
 initial begin
     fork
-        # 111 rx_lp_valid = 1'b1;
-        # 131 rx_lp_valid = 1'b0;
-        # 751 rx_lp_valid = 1'b1;
-        # 771 rx_lp_valid = 1'b0;
-        # 1391 rx_lp_valid = 1'b1;
-        # 1411 rx_lp_valid = 1'b0;
-        # 9051 rx_lp_valid = 1'b1;
-        # 9071 rx_lp_valid = 1'b0;
+        # 111 rx_lp_valid <= 1'b1;
+        # 131 rx_lp_valid <= 1'b0;
+        # 751 rx_lp_valid <= 1'b1;
+        # 771 rx_lp_valid <= 1'b0;
+        # 1391 rx_lp_valid <= 1'b1;
+        # 1411 rx_lp_valid <= 1'b0;
+        # 9051 rx_lp_valid <= 1'b1;
+        # 9071 rx_lp_valid <= 1'b0;
     join
 end
 
 initial begin
     fork
-        # 111 rx_lp_data = 8'h69;
-        # 751 rx_lp_data = 8'h08;
-        # 1391 rx_lp_data = 8'h58;
-        # 9030 rx_lp_data = 8'h00;
-        # 9051 rx_lp_data = 8'hd2;
+        # 111 rx_lp_data <= 8'h69;
+        # 751 rx_lp_data <= 8'h08;
+        # 1391 rx_lp_data <= 8'h58;
+        # 9030 rx_lp_data <= 8'h00;
+        # 9051 rx_lp_data <= 8'hd2;
     join
 end
 
 integer mycnt1;
 initial begin
-    # 1470 tx_lp_ready = 1'b0;
+    # 1470 tx_lp_ready <= 1'b0;
     # 640;
     for(mycnt1 = 0; mycnt1 < 9; mycnt1 = mycnt1 + 1) begin
-        tx_lp_ready = 1'b1;
+        tx_lp_ready <= 1'b1;
         # 20;
-        tx_lp_ready = 1'b0;
+        tx_lp_ready <= 1'b0;
         # 640;
     end
-    tx_lp_ready = 1'b1;
+    tx_lp_ready <= 1'b1;
 end
 
 initial begin
-    # 1431 tx_lt_sop = 1'b1;
-    # 20 tx_lt_sop = 1'b0;
+    # 1431 tx_lt_sop <= 1'b1;
+    # 20 tx_lt_sop <= 1'b0;
 end
 
 initial begin
-    # 6091 tx_lt_eop = 1'b1;
+    # 6091 tx_lt_eop <= 1'b1;
 end
 
 initial begin
     fork
-        # 1431 tx_lt_valid = 1'b1;
-        # 6751 tx_lt_valid = 1'b0;
+        # 1431 tx_lt_valid <= 1'b1;
+        # 6751 tx_lt_valid <= 1'b0;
     join
 end
 
 integer mycnt2;
 initial begin
-    # 1431 tx_lt_data = 8'hc3;
-    # 20 tx_lt_data = 8'h01;
-    # 20 tx_lt_data = 8'h02;
+    # 1431 tx_lt_data <= 8'hc3;
+    # 20 tx_lt_data <= 8'h01;
+    # 20 tx_lt_data <= 8'h02;
     for(mycnt2 = 0; mycnt2 < 7; mycnt2 = mycnt2 + 1) begin
         # 660;
-        tx_lt_data = tx_lt_data + 8'd1;
+        tx_lt_data <= tx_lt_data + 8'd1;
     end
 end
 `endif
@@ -208,66 +208,66 @@ end
 /********************** case 1 **********************/
 `ifdef CASE1
 initial begin
-    ms = 1'b0;
-    time_threshold = 16'd800;
+    ms <= 1'b0;
+    time_threshold <= 16'd800;
 end
 
 initial begin
     fork
-        # 111 rx_lp_sop = 1'b1;
-        # 751 rx_lp_sop = 1'b0;
-        # 3051 rx_lp_sop = 1'b1;
-        # 3691 rx_lp_sop = 1'b0;
+        # 111 rx_lp_sop <= 1'b1;
+        # 751 rx_lp_sop <= 1'b0;
+        # 3051 rx_lp_sop <= 1'b1;
+        # 3691 rx_lp_sop <= 1'b0;
     join
 end
 
 initial begin
     fork
-        # 1391 rx_lp_eop = 1'b1;
-        # 3030 rx_lp_eop = 1'b0;
-        # 8811 rx_lp_eop = 1'b1;
+        # 1391 rx_lp_eop <= 1'b1;
+        # 3030 rx_lp_eop <= 1'b0;
+        # 8811 rx_lp_eop <= 1'b1;
     join
 end
 
 integer mycnt1;
 initial begin
-    # 111 rx_lp_valid = 1'b1;
-    # 20 rx_lp_valid = 1'b0; // 131 ns
-    # 620 rx_lp_valid = 1'b1;
-    # 20 rx_lp_valid = 1'b0; // 771 ns
-    # 620 rx_lp_valid = 1'b1;
-    # 20 rx_lp_valid = 1'b0; // 1411 ns
+    # 111 rx_lp_valid <= 1'b1;
+    # 20 rx_lp_valid <= 1'b0; // 131 ns
+    # 620 rx_lp_valid <= 1'b1;
+    # 20 rx_lp_valid <= 1'b0; // 771 ns
+    # 620 rx_lp_valid <= 1'b1;
+    # 20 rx_lp_valid <= 1'b0; // 1411 ns
     # 1640;
     for(mycnt1 = 0; mycnt1 < 10; mycnt1 = mycnt1 + 1) begin
-        rx_lp_valid = 1'b1;
-        # 20 rx_lp_valid = 1'b0;
+        rx_lp_valid <= 1'b1;
+        # 20 rx_lp_valid <= 1'b0;
         # 620;
     end
 end
 
 integer mycnt2;
 initial begin
-    # 111 rx_lp_data = 8'he1;
-    # 640 rx_lp_data = 8'h08;
-    # 640 rx_lp_data = 8'h58; // 1391 ns
-    # 1639 rx_lp_data = 8'h00; // 3030 ns
-    # 21 rx_lp_data = 8'hc3; // 3051 ns
-    # 640 rx_lp_data = 8'h01; // 3691 ns
+    # 111 rx_lp_data <= 8'he1;
+    # 640 rx_lp_data <= 8'h08;
+    # 640 rx_lp_data <= 8'h58; // 1391 ns
+    # 1639 rx_lp_data <= 8'h00; // 3030 ns
+    # 21 rx_lp_data <= 8'hc3; // 3051 ns
+    # 640 rx_lp_data <= 8'h01; // 3691 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 640 rx_lp_data = rx_lp_data + 8'd1;
+        # 640 rx_lp_data <= rx_lp_data + 8'd1;
     end
 end
 
 initial begin
     fork
-        # 9110 tx_lp_ready = 1'b0;
-        # 9750 tx_lp_ready = 1'b1;
+        # 9110 tx_lp_ready <= 1'b0;
+        # 9750 tx_lp_ready <= 1'b1;
     join
 end
 
 initial begin
-    # 9051 tx_valid = 1'b1;
-    # 20 tx_valid = 1'b0;
+    # 9051 tx_valid <= 1'b1;
+    # 20 tx_valid <= 1'b0;
 end
 `endif
 
@@ -275,79 +275,79 @@ end
 /********************** case 2 **********************/
 `ifdef CASE2
 initial begin
-    ms = 1'b1;
-    time_threshold = 16'd800;
+    ms <= 1'b1;
+    time_threshold <= 16'd800;
 end
 
 initial begin
-    # 16151 rx_lp_sop = 1'b1;
+    # 16151 rx_lp_sop <= 1'b1;
 end
 
 initial begin
-    # 16151 rx_lp_eop = 1'b1;
+    # 16151 rx_lp_eop <= 1'b1;
 end
 
 initial begin
-    # 16151 rx_lp_valid = 1'b1;
-    # 20 rx_lp_valid = 1'b0;
+    # 16151 rx_lp_valid <= 1'b1;
+    # 20 rx_lp_valid <= 1'b0;
 end
 
 initial begin
-    # 16151 rx_lp_data = 8'hd2;
+    # 16151 rx_lp_data <= 8'hd2;
 end
 
 integer mycnt1;
 initial begin
-    # 170 tx_lp_ready = 1'b0;
-    # 640 tx_lp_ready = 1'b1; // 810 ns
-    # 20 tx_lp_ready = 1'b0; // 830 ns
-    # 640 tx_lp_ready = 1'b1; // 1470 ns
-    # 20 tx_lp_ready = 1'b0; // 1490 ns
-    # 640 tx_lp_ready = 1'b1; // 2130 ns
-    # 2760 tx_lp_ready = 1'b0; // 4890 ns
+    # 170 tx_lp_ready <= 1'b0;
+    # 640 tx_lp_ready <= 1'b1; // 810 ns
+    # 20 tx_lp_ready <= 1'b0; // 830 ns
+    # 640 tx_lp_ready <= 1'b1; // 1470 ns
+    # 20 tx_lp_ready <= 1'b0; // 1490 ns
+    # 640 tx_lp_ready <= 1'b1; // 2130 ns
+    # 2760 tx_lp_ready <= 1'b0; // 4890 ns
     for(mycnt1 = 0; mycnt1 < 15; mycnt1 = mycnt1 + 1) begin
         # 640;
-        tx_lp_ready = 1'b1;
+        tx_lp_ready <= 1'b1;
         # 20;
-        tx_lp_ready = 1'b0;
+        tx_lp_ready <= 1'b0;
     end // 14790 ns
-    # 640 tx_lp_ready = 1'b1;
+    # 640 tx_lp_ready <= 1'b1;
 end
 
 initial begin
     # 100;
-    tx_pid = 4'b0001;
-    tx_addr = 7'h08;
+    tx_pid <= 4'b0001;
+    tx_addr <= 7'h08;
 end
 
 initial begin
-    # 111 tx_valid = 1'b1;
-    # 20 tx_valid = 1'b0;
+    # 111 tx_valid <= 1'b1;
+    # 20 tx_valid <= 1'b0;
 end
 
 initial begin
-    # 4851 tx_lt_sop = 1'b1;
-    # 20 tx_lt_sop = 1'b0;
+    # 4851 tx_lt_sop <= 1'b1;
+    # 20 tx_lt_sop <= 1'b0;
 end
 
 initial begin
-    # 13471 tx_lt_eop = 1'b1;
+    # 13471 tx_lt_eop <= 1'b1;
 end
 
 initial begin
     fork
-        # 4851 tx_lt_valid = 1'b1;
-        # 14131 tx_lt_valid = 1'b0;
+        # 4851 tx_lt_valid <= 1'b1;
+        # 14131 tx_lt_valid <= 1'b0;
     join
 end
 
 integer mycnt2;
 initial begin
-    # 4851 tx_lt_data = 8'hc3;
-    # 20 tx_lt_data = 8'h01; // 4871 ns
-    # 20 tx_lt_data = 8'h02; // 4891 ns
+    # 4851 tx_lt_data <= 8'hc3;
+    # 20 tx_lt_data <= 8'h01; // 4871 ns
+    # 20 tx_lt_data <= 8'h02; // 4891 ns
     for(mycnt2 = 0; mycnt2 < 13; mycnt2 = mycnt2 + 1) begin
-        # 660 tx_lt_data = tx_lt_data + 8'd1;
+        # 660 tx_lt_data <= tx_lt_data + 8'd1;
     end
 end
 `endif
@@ -356,73 +356,73 @@ end
 /********************** case 3 **********************/
 `ifdef CASE3
 initial begin
-    ms = 1'b1;
-    time_threshold = 16'd800;
+    ms <= 1'b1;
+    time_threshold <= 16'd800;
 end
 
 initial begin
     fork
-        # 4851 rx_lp_sop = 1'b1;
-        # 5491 rx_lp_sop = 1'b0;
+        # 4851 rx_lp_sop <= 1'b1;
+        # 5491 rx_lp_sop <= 1'b0;
     join
 end
 
 initial begin
-    # 10611 rx_lp_eop = 1'b1;
+    # 10611 rx_lp_eop <= 1'b1;
 end
 
 integer mycnt1;
 initial begin
-    # 4851 rx_lp_valid = 1'b1;
-    # 20 rx_lp_valid = 1'b0; // 4871 ns
+    # 4851 rx_lp_valid <= 1'b1;
+    # 20 rx_lp_valid <= 1'b0; // 4871 ns
     for(mycnt1 = 0; mycnt1 < 9; mycnt1 = mycnt1 + 1) begin
-        # 620 rx_lp_valid = 1'b1;
-        # 20 rx_lp_valid = 1'b0;
+        # 620 rx_lp_valid <= 1'b1;
+        # 20 rx_lp_valid <= 1'b0;
     end
 end
 
 integer mycnt2;
 initial begin
-    # 4851 rx_lp_data = 8'hc3;
-    # 640 rx_lp_data = 8'h01; // 5491 ns
+    # 4851 rx_lp_data <= 8'hc3;
+    # 640 rx_lp_data <= 8'h01; // 5491 ns
     for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 640 rx_lp_data = rx_lp_data + 8'd1;
+        # 640 rx_lp_data <= rx_lp_data + 8'd1;
     end
 end
 
 initial begin
     fork
-        # 170 tx_lp_ready = 1'b0;
-        # 810 tx_lp_ready = 1'b1;
-        # 830 tx_lp_ready = 1'b0;
-        # 1470 tx_lp_ready = 1'b1;
-        # 1490 tx_lp_ready = 1'b0;
-        # 2130 tx_lp_ready = 1'b1;
-        # 12710 tx_lp_ready = 1'b0;
-        # 13350 tx_lp_ready = 1'b1;
+        # 170 tx_lp_ready <= 1'b0;
+        # 810 tx_lp_ready <= 1'b1;
+        # 830 tx_lp_ready <= 1'b0;
+        # 1470 tx_lp_ready <= 1'b1;
+        # 1490 tx_lp_ready <= 1'b0;
+        # 2130 tx_lp_ready <= 1'b1;
+        # 12710 tx_lp_ready <= 1'b0;
+        # 13350 tx_lp_ready <= 1'b1;
     join
 end
 
 initial begin
     fork
-        # 100 tx_pid = 4'b1001;
-        # 12630 tx_pid = 4'b0010;
+        # 100 tx_pid <= 4'b1001;
+        # 12630 tx_pid <= 4'b0010;
     join
 end
 
 initial begin
     fork
-        # 100 tx_addr = 7'h08;
-        # 12630 tx_addr = 7'h00;
+        # 100 tx_addr <= 7'h08;
+        # 12630 tx_addr <= 7'h00;
     join
 end
 
 initial begin
     fork
-        # 111 tx_valid = 1'b1;
-        # 131 tx_valid = 1'b0;
-        # 12651 tx_valid = 1'b1;
-        # 12671 tx_valid = 1'b0;
+        # 111 tx_valid <= 1'b1;
+        # 131 tx_valid <= 1'b0;
+        # 12651 tx_valid <= 1'b1;
+        # 12671 tx_valid <= 1'b0;
     join
 end
 `endif
