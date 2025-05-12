@@ -70,6 +70,7 @@ module crc5_r (
     assign d = {rx_lp_data[2:0], endp_bit, self_addr};
     assign crc5_right = (rx_lp_data[7:3] == {c_out[0], c_out[1], c_out[2], c_out[3], c_out[4]});
 
+    //have been modified,only uses in token packet
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             crc5_err <= 1'b0;

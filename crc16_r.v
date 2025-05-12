@@ -56,6 +56,7 @@ module crc16_r( // works only DATA phase
         end else;
     end
 
+    // have been modified
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
            valid_reg <= 1'b0; 

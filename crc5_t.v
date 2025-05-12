@@ -53,6 +53,7 @@ always @(posedge clk or negedge rst_n) begin
     end else;
 end
 
+// have been modified
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_to_data <= 8'b11110000;
@@ -60,7 +61,11 @@ always @(posedge clk or negedge rst_n) begin
         tx_to_data <= {~tx_pid, tx_pid};
     end else if(tx_to_transok) begin 
         if (send_cnt == 2'b00) begin
-            tx_to_data <= {endp_reg[0], addr_reg};
+            if (pid_reg[1:0] == 2'b10) begin
+                tx_to_data <= tx_to_data;
+            end else begin
+                tx_to_data <= {endp_reg[0], addr_reg};
+            end
         end else if (send_cnt == 2'b01) begin
             tx_to_data <= {crc_out, endp_reg[3:1]};
         end else if (send_cnt == 2'b10) begin
