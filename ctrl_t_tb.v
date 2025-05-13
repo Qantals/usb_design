@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ns/1ps
 `define CASE2
 `define FSDB
 module ctrl_t_tb();
@@ -264,3 +264,4 @@ initial begin
 	$fsdbDumpvars;
 end
 `endif
+endmodule

@@ -20,7 +20,10 @@ module crc16_r( // works only DATA phase
     output rx_lt_eop,
     output rx_lt_valid,
     input rx_lt_ready,
-    output [7:0] rx_lt_data
+    output [7:0] rx_lt_data,
+
+    // interface with reg file
+    output crc16_err
 );
 
     /* output to crc5_r module*/
@@ -96,5 +99,38 @@ module crc16_r( // works only DATA phase
     //         tran_en <= 1'b0;
     //     end else;
     // end
+
+    /* crc16 error detection */
+    reg [15:0] crc_reg;
+    wire [15:0] crc_reg_inv;
+    reg crc_check_ok;
+    wire [15:0] crc_out;
+
+    crc16 u_crc16(
+        .data(data_reg),
+        .crc_in(crc_reg),
+        .crc_out(crc_out)
+    );
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            crc_reg <= 16'hffff;
+        end else if (tran_buf && sop_reg) begin
+            crc_reg <= 16'hffff;
+        end else if (tran_buf) begin
+            crc_reg <= crc_out;
+        end else;
+    end
+
+    always@(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            crc_check_ok <= 1'b1;
+        end else if (tran_buf && rx_eop) begin
+            crc_check_ok <= (crc_reg_inv == {rx_data,data_reg});
+        end else;
+    end
+
+    assign crc_reg_inv = ~{crc_reg[8], crc_reg[9],crc_reg[10], crc_reg[11],crc_reg[12], crc_reg[13],crc_reg[14],crc_reg[15],crc_reg[0],crc_reg[1],crc_reg[2],crc_reg[3],crc_reg[4], crc_reg[5],crc_reg[6], crc_reg[7]};
+    assign crc16_err = ~crc_check_ok;
 
 endmodule
