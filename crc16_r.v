@@ -27,8 +27,8 @@ module crc16_r( // works only DATA phase
 );
 
     /* output to crc5_r module*/
-    assign rx_ready = 1'b1;//although rx_ready is 1'bz in waveform, I think contest doesn't care about it ,so here I set it to 1'b1
-    
+    //assign rx_ready = 1'b1;//although rx_ready is 1'bz in waveform, I think contest doesn't care about it ,so here I set it to 1'b1
+
     /* get signal from crc5_r module and output to transfer layer*/
     wire rx_transok;
     wire tran_buf;
@@ -59,10 +59,17 @@ module crc16_r( // works only DATA phase
     end
 
     // have been modified
+    // always @(posedge clk or negedge rst_n) begin
+    //     if (!rst_n) begin
+    //        valid_reg <= 1'b0; 
+    //     end else if (tran_buf) begin
+    //         valid_reg <= rx_valid;
+    //     end else;
+    // end
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
            valid_reg <= 1'b0; 
-        end else if (tran_buf) begin
+        end else if (rx_ready && rx_data_on) begin
             valid_reg <= rx_valid;
         end else;
     end
@@ -132,5 +139,7 @@ module crc16_r( // works only DATA phase
 
     assign crc_reg_inv = ~{crc_reg[8], crc_reg[9],crc_reg[10], crc_reg[11],crc_reg[12], crc_reg[13],crc_reg[14],crc_reg[15],crc_reg[0],crc_reg[1],crc_reg[2],crc_reg[3],crc_reg[4], crc_reg[5],crc_reg[6], crc_reg[7]};
     assign crc16_err = ~crc_check_ok;
+
+    assign rx_ready = rx_lt_ready || (~valid_reg);
 
 endmodule

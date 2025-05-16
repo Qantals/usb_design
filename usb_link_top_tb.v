@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define CASE3
+`define CASE0
 
 module usb_link_top_tb ();
 
@@ -159,7 +159,7 @@ initial begin
     fork
         # 111 rx_lp_data <= 8'h69;
         # 751 rx_lp_data <= 8'h08;
-        # 1391 rx_lp_data <= 8'h58;
+        # 1391 rx_lp_data <= 8'hD0;
         # 9030 rx_lp_data <= 8'h00;
         # 9051 rx_lp_data <= 8'hd2;
     join
