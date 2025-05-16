@@ -87,10 +87,10 @@ end
 always @(posedge clk, negedge rst_n) begin
     if (!rst_n) begin
         tx_lp_valid <= 1'b0;
-    end else if (sop_buf && valid_buf) begin
-        tx_lp_valid <= 1'b1;
     end else if (tx_lp_eop_en) begin
         tx_lp_valid <= 1'b0;
+    end else if (sop_buf && valid_buf) begin
+        tx_lp_valid <= 1'b1;
     end else;
 end
 

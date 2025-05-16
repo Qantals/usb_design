@@ -7,6 +7,7 @@ module link_control(
     // from `crc5_r`
     input rx_pid_en, // pulse at finish
     input [3:0] rx_pid,
+    input crc5_err,
     // from `crc16_r`
     input rx_sop_en, // pulse at start.rx_sop_en presents that begin to receive DATA packet.
     input rx_lt_eop_en, // pulse at finish
@@ -55,8 +56,8 @@ reg rx_sop_en_regd; // register flopping for delay control
 /* Determine which packet is currently being received*/
 assign master_send_rt = ms && (tx_con_pid == 4'b1001) && tx_con_pid_en;
 assign master_send_wt = ms && (tx_con_pid == 4'b0001) && tx_con_pid_en;
-assign slave_receive_rt = !ms && (rx_pid == 4'b1001) && rx_pid_en;
-assign slave_receive_wt = !ms && (rx_pid == 4'b0001) && rx_pid_en;
+assign slave_receive_rt = !ms && (rx_pid == 4'b1001) && rx_pid_en && (~crc5_err); // crc5_err is used to filter the error packet
+assign slave_receive_wt = !ms && (rx_pid == 4'b0001) && rx_pid_en && (~crc5_err);
 assign ms_receive_hs = (rx_pid == 4'b0010) && rx_pid_en;
 
 always @(posedge clk, negedge rst_n) begin
@@ -131,7 +132,7 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         delay_cnt <= 6'd0;
     end else if (delay_on) begin
-        if (delay_cnt == delay_threshole) begin
+        if (delay_done) begin
             delay_cnt <= 6'd0;
         end else begin
             delay_cnt <= delay_cnt + 6'd1;
@@ -186,10 +187,10 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         slave_d_oe <= 1'b0;
-    end else if (slave_receive_rt || rx_lt_eop_en && (!ms)) begin
-        slave_d_oe <= 1'b1;
     end else if (delay_done) begin
         slave_d_oe <= 1'b0;
+    end else if (slave_receive_rt || rx_lt_eop_en && (!ms)) begin
+        slave_d_oe <= 1'b1;
     end else;
 end
 
