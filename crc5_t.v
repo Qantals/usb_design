@@ -28,12 +28,12 @@ wire tx_to_transok;
 reg [1:0] send_cnt; 
 reg valid_reg; // keep level 1 fron SOP to EOP
 reg [3:0] pid_reg;
-reg [7:0] addr_reg;
+reg [6:0] addr_reg;
 reg [3:0] endp_reg;
 
 wire [10:0] d;
 wire [4:0] c_out;//the output of crc5 module
-wire [4:0] crc_out;// flip c_out
+wire [4:0] crc_out;// (flip) c_out
 
 assign tx_transok = tx_valid && tx_ready; 
 assign tx_to_transok = tx_to_valid && tx_to_ready; 
@@ -46,6 +46,8 @@ always @(posedge clk or negedge rst_n) begin
         tx_to_eop <= 1'b0;
     end else if (tx_transok && (tx_pid[1:0] == 2'b10)) begin
         tx_to_eop <= 1'b1;
+    end else if (tx_transok && (tx_pid[1:0] != 2'b10)) begin 
+        tx_to_eop <= 1'b0;
     end else if (tx_to_transok && (send_cnt == 2'b01)) begin
         tx_to_eop <= 1'b1;
     end else if (tx_to_transok && (send_cnt == 2'b10)) begin
@@ -80,10 +82,10 @@ assign tx_con_pid = pid_reg;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_con_pid_en <= 1'b0;
-    end else if(tx_transok) begin
-        tx_con_pid_en <= 1'b1;
     end else if(tx_to_transok) begin
         tx_con_pid_en <=1'b0;
+    end else if(tx_transok) begin
+        tx_con_pid_en <= 1'b1;
     end else;
 end
 
@@ -92,14 +94,14 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         tx_ready <= 1'b1;
-    end else if (tx_valid) begin
-        tx_ready <= 1'b0;
     end else if (tx_to_transok) begin
         if (pid_reg[1:0] == 2'b10) begin // HANDSHAKE packet
             tx_ready <= 1'b1;
         end else if ((pid_reg[1:0] == 2'b01) && (send_cnt == 2'b10)) begin // TOKEN packet
             tx_ready <= 1'b1;
         end else;
+    end else if (tx_valid) begin
+        tx_ready <= 1'b0;
     end else;
 end
 
@@ -132,14 +134,14 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         valid_reg <= 1'b0;
-    end else if (tx_transok) begin
-        valid_reg <= 1'b1;
     end else if (tx_to_transok) begin
         if (pid_reg[1:0] == 2'b10) begin // HANDSHAKE packet
             valid_reg <= 1'b0;
         end else if ((pid_reg[1:0] == 2'b01) && (send_cnt == 2'b10)) begin // TOKEN packet
             valid_reg <= 1'b0;
         end else;
+    end else if (tx_transok) begin
+        valid_reg <= 1'b1;
     end else;
 end
 
@@ -162,9 +164,10 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 // crc
-assign d = {endp_reg, addr_reg};
-assign crc_out = {c_out[0], c_out[1], c_out[2], c_out[3], c_out[4]}; // reverse bit order
-
+//assign d = {endp_reg, addr_reg};
+assign d = {addr_reg[0], addr_reg[1], addr_reg[2], addr_reg[3], addr_reg[4], addr_reg[5], addr_reg[6], endp_reg[0], endp_reg[1], endp_reg[2], endp_reg[3]};
+//assign crc_out = {c_out[0], c_out[1], c_out[2], c_out[3], c_out[4]}; // reverse bit order
+assign crc_out = {~c_out[0], ~c_out[1], ~c_out[2], ~c_out[3], ~c_out[4]};
 crc5 crc5_tx_u0 (
     .c(5'h1f),
     .d(d),

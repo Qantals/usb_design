@@ -32,11 +32,18 @@ module crc5_r (
     /* get from phy and output to phy*/
     wire rx_lp_transok;
     assign rx_lp_transok = rx_lp_ready && rx_lp_valid;
-    assign rx_lp_ready = 1'b1;
+    //assign rx_lp_ready = 1'b1;
+    assign rx_lp_ready = rx_ready;
 
     /* link layer: addr*/
     wire addr_match; // regardless of clk, check if rx_lp_data == self_addr
     reg addr_ok;//only rely on addr_match with clk control,delay one clk
+    wire crc5_err_temp; 
+    /*addr_ok=1，crc5_right=1，represent it's right； 
+    addr_ok=0，crc5_right=1，represent addr changed； 
+    addr_ok=0，crc5_right=0, represent selfaddr of slave is not match；
+    addr_ok=1，crc5_right=0，represent endp changed*/
+    wire addr_ok_temp;
 
     assign addr_match = (rx_lp_data[6:0] == self_addr); 
     always @(posedge clk or negedge rst_n) begin
@@ -63,11 +70,15 @@ module crc5_r (
     crc5 crc5_u0 (
     .c(5'h1f),
     .d(d),
-    .c_out(cout)
+    .c_out(c_out)
     );
 
-    assign d = {rx_lp_data[2:0], endp_bit, self_addr};
-    assign crc5_right = (rx_lp_data[7:3] == {c_out[0], c_out[1], c_out[2], c_out[3], c_out[4]});
+    //assign d = {rx_lp_data[2:0], endp_bit, self_addr};
+    assign d = {self_addr[0],self_addr[1],self_addr[2],self_addr[3],self_addr[4],self_addr[5],self_addr[6], endp_bit, rx_lp_data[0], rx_lp_data[1], rx_lp_data[2]};
+    assign crc5_right = (rx_lp_data[7:3] == {~c_out[0], ~c_out[1], ~c_out[2], ~c_out[3], ~c_out[4]});
+
+    assign crc5_err_temp = (~addr_ok && crc5_right) || (addr_ok && ~crc5_right);
+    assign addr_ok_temp = (addr_ok || crc5_right);
 
     //have been modified,only uses in token packet
     always @(posedge clk or negedge rst_n) begin
@@ -76,7 +87,7 @@ module crc5_r (
         end else if (crc5_err) begin
             crc5_err <= 1'b0;
         end else if (rx_lp_transok && rx_lp_eop) begin
-            crc5_err <= ~crc5_right;
+            crc5_err <= crc5_err_temp;
         end else;
     end
 
@@ -100,7 +111,8 @@ module crc5_r (
     assign pid_h_l_ok = (rx_lp_data[3:0] == ~rx_lp_data[7:4]);
     assign pid_is_not_data = (rx_lp_data[3:0] != 4'b0011) && (rx_lp_data[3:0] != 4'b1011);
     assign pid_ok_en = pid_h_l_ok && rx_lp_sop && rx_lp_transok && pid_is_not_data && ~rx_handshake_on;
-    assign rx_pid_en_token = rx_lp_transok && rx_lp_eop && addr_ok && crc5_right && pid_ok;
+    //assign rx_pid_en_token = rx_lp_transok && rx_lp_eop && addr_ok && crc5_right && pid_ok;
+    assign rx_pid_en_token = rx_lp_transok && rx_lp_eop && addr_ok_temp && pid_ok;
     assign rx_pid_en_handshake = rx_lp_transok && rx_lp_eop && pid_h_l_ok && rx_handshake_on;
     
     always @(posedge clk or negedge rst_n) begin
@@ -129,14 +141,14 @@ module crc5_r (
 
     for data phase, rx_pid_en is 0;
     for addr dosen't match, rx_pid_en is 0;
-    for crc5 error, rx_pid_en is 0;
+    for crc5 error, rx_pid_en is 1;
 
     */
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rx_pid_en <= 1'b0;
-        end else if ((rx_pid_en_token || rx_pid_en_handshake) && rx_ready) begin
+        end else if (rx_pid_en_token || rx_pid_en_handshake) begin
             rx_pid_en <= 1'b1;
         end else begin
             rx_pid_en <= 1'b0;
