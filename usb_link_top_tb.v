@@ -28,6 +28,7 @@ reg tx_lt_cancle = 1'b0;
 
 // usb_link outputs
 wire crc5_err;
+wire crc16_err;
 wire time_out;
 wire d_oe;
 wire rx_lp_ready;
@@ -62,6 +63,7 @@ usb_link usb_link_u0(
     .rst_n           ( rst_n           ),
     .self_addr       ( self_addr       ),
     .crc5_err        ( crc5_err        ),
+    .crc16_err       ( crc16_err       ),
     .ms              ( ms              ),
     .time_threshold  ( time_threshold  ),
     .delay_threshole ( delay_threshole ),
@@ -243,6 +245,12 @@ initial begin
         # 20 rx_lp_valid <= 1'b0;
         # 620;
     end
+end
+
+initial begin
+    # 9030;
+    tx_pid <= 4'b0010;
+    tx_addr <= 7'h08;
 end
 
 integer mycnt2;

@@ -7,6 +7,8 @@ module usb_link(
     // `crc5_r`
     input [6:0] self_addr,
     output crc5_err,
+    // `crc16_r`
+    output crc16_err,
     // `link_control`
     input ms,
     input [15:0] time_threshold,
@@ -140,7 +142,8 @@ crc16_r crc16_ru_u0(
     .rx_lt_eop    ( rx_lt_eop    ), // output
     .rx_lt_valid  ( rx_lt_valid  ), // output
     .rx_lt_ready  ( rx_lt_ready  ), // input
-    .rx_lt_data   ( rx_lt_data   ) // output [7:0]
+    .rx_lt_data   ( rx_lt_data   ), // output [7:0]
+    .crc16_err    ( crc16_err    ) // output
 );
 
 
