@@ -133,7 +133,7 @@ module crc16_r( // works only DATA phase
         if (!rst_n) begin
             crc_check_ok <= 1'b1;
         end else if (tran_buf && rx_eop) begin
-            crc_check_ok <= (crc_reg_inv == {rx_data,data_reg});
+            crc_check_ok <= (crc_reg_inv == {data_reg, rx_data});
         end else;
     end
 

@@ -210,6 +210,7 @@ link_control link_control_u0(
     // control
     .rx_pid_en       ( rx_pid_en       ), // input          `crc5_r` reused by link layer
     .rx_pid          ( rx_pid          ), // input [3:0]    `crc5_r` reused by link layer
+    .crc5_err        ( crc5_err        ), // input          `crc5_r` reused by link layer
 
     .rx_sop_en       ( rx_sop_en       ), // input          `crc16_r`
     .rx_lt_eop_en    ( rx_lt_eop_en    ), // input          `crc16_r`

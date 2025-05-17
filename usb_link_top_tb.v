@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define CASE0
+`define CASE3
 
 module usb_link_top_tb ();
 
@@ -46,15 +46,6 @@ wire rx_lt_valid;
 wire [7:0] rx_lt_data;
 wire tx_ready;
 wire tx_lt_ready;
-
-// inner variables (I do not want to implement this, for much freedom to implement so unpracticable to guess behavior in testbench)
-// reg [9:0] i = 10'h000; // indicate `tx_lt_data`
-// reg [10:0] d; // no init
-// wire [4:0] c_out; // no need init
-// reg [9:0] j = 10'h000; // indicate `rx_lp_data`
-// reg [9:0] num0; // no init
-// reg [4:0] cnt = 5'h00;
-// reg [1:0] abc = 2'h3; // down count for master
 
 
 // instantiation
@@ -126,83 +117,95 @@ initial begin
     time_threshold <= 16'd200;
 end
 
-initial begin
-    fork
-        # 111 rx_lp_sop <= 1'b1;
-        # 751 rx_lp_sop <= 1'b0;
-        # 9051 rx_lp_sop <= 1'b1;
-    join
-end
+reg [7:0] tx_lt_data_values [0:8];
+integer i;
 
 initial begin
-    fork
-        # 1391 rx_lp_eop <= 1'b1;
-        # 9030 rx_lp_eop <= 1'b0;
-        # 9051 rx_lp_eop <= 1'b1;
-    join
+    tx_lt_data_values[0] = 8'h01;
+    tx_lt_data_values[1] = 8'h02;
+    tx_lt_data_values[2] = 8'h03;
+    tx_lt_data_values[3] = 8'h04;
+    tx_lt_data_values[4] = 8'h05;
+    tx_lt_data_values[5] = 8'h06;
+    tx_lt_data_values[6] = 8'h07;
+    tx_lt_data_values[7] = 8'he2;
+    tx_lt_data_values[8] = 8'h8e;
 end
 
-initial begin
-    fork
-        # 111 rx_lp_valid <= 1'b1;
-        # 131 rx_lp_valid <= 1'b0;
-        # 751 rx_lp_valid <= 1'b1;
-        # 771 rx_lp_valid <= 1'b0;
-        # 1391 rx_lp_valid <= 1'b1;
-        # 1411 rx_lp_valid <= 1'b0;
-        # 9051 rx_lp_valid <= 1'b1;
-        # 9071 rx_lp_valid <= 1'b0;
-    join
-end
 
+// slave rx TOKEN IN
 initial begin
-    fork
-        # 111 rx_lp_data <= 8'h69;
-        # 751 rx_lp_data <= 8'h08;
-        # 1391 rx_lp_data <= 8'hD0;
-        # 9030 rx_lp_data <= 8'h00;
-        # 9051 rx_lp_data <= 8'hd2;
-    join
-end
-
-integer mycnt1;
-initial begin
-    # 1470 tx_lp_ready <= 1'b0;
-    # 640;
-    for(mycnt1 = 0; mycnt1 < 9; mycnt1 = mycnt1 + 1) begin
-        tx_lp_ready <= 1'b1;
-        # 20;
-        tx_lp_ready <= 1'b0;
-        # 640;
+    #100;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b01101001; // PID = IN TOKEN
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h08; // addr=4'h4, endp=4'h3, crc5=5'h1f
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h60;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 1;
+    tx_lt_valid <= 1;
+    tx_lt_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 0;
+    tx_lt_data <= tx_lt_data_values[0];
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_data <= tx_lt_data_values[1];
+    for (i = 2; i <= 8; i = i + 1) begin
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        #1;
+        tx_lt_data <= tx_lt_data_values[i];
     end
-    tx_lp_ready <= 1'b1;
-end
-
-initial begin
-    # 1431 tx_lt_sop <= 1'b1;
-    # 20 tx_lt_sop <= 1'b0;
-end
-
-initial begin
-    # 6091 tx_lt_eop <= 1'b1;
-end
-
-initial begin
-    fork
-        # 1431 tx_lt_valid <= 1'b1;
-        # 6751 tx_lt_valid <= 1'b0;
-    join
-end
-
-integer mycnt2;
-initial begin
-    # 1431 tx_lt_data <= 8'hc3;
-    # 20 tx_lt_data <= 8'h01;
-    # 20 tx_lt_data <= 8'h02;
-    for(mycnt2 = 0; mycnt2 < 7; mycnt2 = mycnt2 + 1) begin
-        # 660;
-        tx_lt_data <= tx_lt_data + 8'd1;
-    end
+    tx_lt_eop <= 1;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_valid <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    repeat (49) @(posedge clk);
+    rx_lp_eop <= 0;
+    rx_lp_data <= 8'd0;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11010010; // PID = ACK
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
 end
 `endif
 
@@ -214,68 +217,90 @@ initial begin
     time_threshold <= 16'd800;
 end
 
-initial begin
-    fork
-        # 111 rx_lp_sop <= 1'b1;
-        # 751 rx_lp_sop <= 1'b0;
-        # 3051 rx_lp_sop <= 1'b1;
-        # 3691 rx_lp_sop <= 1'b0;
-    join
-end
+reg [7:0] rx_lp_data_values [0:8];
+integer i;
 
 initial begin
-    fork
-        # 1391 rx_lp_eop <= 1'b1;
-        # 3030 rx_lp_eop <= 1'b0;
-        # 8811 rx_lp_eop <= 1'b1;
-    join
+    rx_lp_data_values[0] = 8'h01;
+    rx_lp_data_values[1] = 8'h02;
+    rx_lp_data_values[2] = 8'h03;
+    rx_lp_data_values[3] = 8'h04;
+    rx_lp_data_values[4] = 8'h05;
+    rx_lp_data_values[5] = 8'h06;
+    rx_lp_data_values[6] = 8'h07;
+    rx_lp_data_values[7] = 8'he2;
+    rx_lp_data_values[8] = 8'h8e;
 end
 
-integer mycnt1;
+
 initial begin
-    # 111 rx_lp_valid <= 1'b1;
-    # 20 rx_lp_valid <= 1'b0; // 131 ns
-    # 620 rx_lp_valid <= 1'b1;
-    # 20 rx_lp_valid <= 1'b0; // 771 ns
-    # 620 rx_lp_valid <= 1'b1;
-    # 20 rx_lp_valid <= 1'b0; // 1411 ns
-    # 1640;
-    for(mycnt1 = 0; mycnt1 < 10; mycnt1 = mycnt1 + 1) begin
-        rx_lp_valid <= 1'b1;
-        # 20 rx_lp_valid <= 1'b0;
-        # 620;
+    #100;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11100001; // PID = OUT TOKEN
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h60;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (81) @(posedge clk);
+    rx_lp_eop <= 0;
+    rx_lp_data <= 8'd0;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    for (i = 1; i <= 8; i = i + 1) begin
+        @(posedge clk);
+        #1;
+        rx_lp_valid <= 0;
+        repeat (31) @(posedge clk);
+        #1;
+        rx_lp_valid <= 1;
+        rx_lp_data <= rx_lp_data_values[i];
     end
-end
-
-initial begin
-    # 9030;
-    tx_pid <= 4'b0010;
-    tx_addr <= 7'h08;
-end
-
-integer mycnt2;
-initial begin
-    # 111 rx_lp_data <= 8'he1;
-    # 640 rx_lp_data <= 8'h08;
-    # 640 rx_lp_data <= 8'h58; // 1391 ns
-    # 1639 rx_lp_data <= 8'h00; // 3030 ns
-    # 21 rx_lp_data <= 8'hc3; // 3051 ns
-    # 640 rx_lp_data <= 8'h01; // 3691 ns
-    for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 640 rx_lp_data <= rx_lp_data + 8'd1;
-    end
-end
-
-initial begin
-    fork
-        # 9110 tx_lp_ready <= 1'b0;
-        # 9750 tx_lp_ready <= 1'b1;
-    join
-end
-
-initial begin
-    # 9051 tx_valid <= 1'b1;
-    # 20 tx_valid <= 1'b0;
+    rx_lp_eop <= 1;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (10) @(posedge clk);
+    tx_pid <= 4'b0010; // PID = ACK
+    tx_addr <= 7'd8;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    repeat (2) @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
 end
 `endif
 
@@ -287,78 +312,91 @@ initial begin
     time_threshold <= 16'd800;
 end
 
+reg [7:0] tx_lt_data_values [0:14];
+integer i;
+
 initial begin
-    # 16151 rx_lp_sop <= 1'b1;
+    tx_lt_data_values[0] = 8'h01;
+    tx_lt_data_values[1] = 8'h02;
+    tx_lt_data_values[2] = 8'h03;
+    tx_lt_data_values[3] = 8'h04;
+    tx_lt_data_values[4] = 8'h05;
+    tx_lt_data_values[5] = 8'h06;
+    tx_lt_data_values[6] = 8'h07;
+    tx_lt_data_values[7] = 8'h08;
+    tx_lt_data_values[8] = 8'h09;
+    tx_lt_data_values[9] = 8'h0a;
+    tx_lt_data_values[10] = 8'h0b;
+    tx_lt_data_values[11] = 8'h0c;
+    tx_lt_data_values[12] = 8'h0d;
+    tx_lt_data_values[13] = 8'heb;
+    tx_lt_data_values[14] = 8'hef;
 end
 
 initial begin
-    # 16151 rx_lp_eop <= 1'b1;
-end
-
-initial begin
-    # 16151 rx_lp_valid <= 1'b1;
-    # 20 rx_lp_valid <= 1'b0;
-end
-
-initial begin
-    # 16151 rx_lp_data <= 8'hd2;
-end
-
-integer mycnt1;
-initial begin
-    # 170 tx_lp_ready <= 1'b0;
-    # 640 tx_lp_ready <= 1'b1; // 810 ns
-    # 20 tx_lp_ready <= 1'b0; // 830 ns
-    # 640 tx_lp_ready <= 1'b1; // 1470 ns
-    # 20 tx_lp_ready <= 1'b0; // 1490 ns
-    # 640 tx_lp_ready <= 1'b1; // 2130 ns
-    # 2760 tx_lp_ready <= 1'b0; // 4890 ns
-    for(mycnt1 = 0; mycnt1 < 15; mycnt1 = mycnt1 + 1) begin
-        # 640;
-        tx_lp_ready <= 1'b1;
-        # 20;
-        tx_lp_ready <= 1'b0;
-    end // 14790 ns
-    # 640 tx_lp_ready <= 1'b1;
-end
-
-initial begin
-    # 100;
-    tx_pid <= 4'b0001;
-    tx_addr <= 7'h08;
-end
-
-initial begin
-    # 111 tx_valid <= 1'b1;
-    # 20 tx_valid <= 1'b0;
-end
-
-initial begin
-    # 4851 tx_lt_sop <= 1'b1;
-    # 20 tx_lt_sop <= 1'b0;
-end
-
-initial begin
-    # 13471 tx_lt_eop <= 1'b1;
-end
-
-initial begin
-    fork
-        # 4851 tx_lt_valid <= 1'b1;
-        # 14131 tx_lt_valid <= 1'b0;
-    join
-end
-
-integer mycnt2;
-initial begin
-    # 4851 tx_lt_data <= 8'hc3;
-    # 20 tx_lt_data <= 8'h01; // 4871 ns
-    # 20 tx_lt_data <= 8'h02; // 4891 ns
-    for(mycnt2 = 0; mycnt2 < 13; mycnt2 = mycnt2 + 1) begin
-        # 660 tx_lt_data <= tx_lt_data + 8'd1;
+    #100;
+    tx_pid <= 4'b0001; // PID = OUT
+    tx_addr <= 7'd8;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    @(posedge clk);
+    repeat (3) begin
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
     end
+    repeat (136) @(posedge clk);
+    #1;
+    tx_lt_sop <= 1;
+    tx_lt_valid <= 1;
+    tx_lt_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 0;
+    tx_lt_data <= tx_lt_data_values[0];
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_data <= tx_lt_data_values[1];
+    for (i = 2; i <= 14; i = i + 1) begin
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        #1;
+        tx_lt_data <= tx_lt_data_values[i];
+    end
+    tx_lt_eop <= 1;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_valid <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    repeat (36) @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11010010; // PID = ACK
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
 end
 `endif
+
+
 
 
 /********************** case 3 **********************/
@@ -368,72 +406,326 @@ initial begin
     time_threshold <= 16'd800;
 end
 
+reg [7:0] rx_lp_data_values [0:8];
+integer i;
+
 initial begin
-    fork
-        # 4851 rx_lp_sop <= 1'b1;
-        # 5491 rx_lp_sop <= 1'b0;
-    join
+    rx_lp_data_values[0] = 8'h01;
+    rx_lp_data_values[1] = 8'h02;
+    rx_lp_data_values[2] = 8'h03;
+    rx_lp_data_values[3] = 8'h04;
+    rx_lp_data_values[4] = 8'h05;
+    rx_lp_data_values[5] = 8'h06;
+    rx_lp_data_values[6] = 8'h07;
+    rx_lp_data_values[7] = 8'he2;
+    rx_lp_data_values[8] = 8'h8e;
 end
 
 initial begin
-    # 10611 rx_lp_eop <= 1'b1;
-end
-
-integer mycnt1;
-initial begin
-    # 4851 rx_lp_valid <= 1'b1;
-    # 20 rx_lp_valid <= 1'b0; // 4871 ns
-    for(mycnt1 = 0; mycnt1 < 9; mycnt1 = mycnt1 + 1) begin
-        # 620 rx_lp_valid <= 1'b1;
-        # 20 rx_lp_valid <= 1'b0;
+    #100;
+    tx_pid <= 4'b1001; // PID = IN TOKEN
+    tx_addr <= 7'h08;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    @(posedge clk);
+    repeat (3) begin
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
     end
-end
-
-integer mycnt2;
-initial begin
-    # 4851 rx_lp_data <= 8'hc3;
-    # 640 rx_lp_data <= 8'h01; // 5491 ns
-    for(mycnt2 = 0; mycnt2 < 8; mycnt2 = mycnt2 + 1) begin
-        # 640 rx_lp_data <= rx_lp_data + 8'd1;
+    repeat (136) @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    for (i = 1; i <= 8; i = i + 1) begin
+        @(posedge clk);
+        #1;
+        rx_lp_valid <= 0;
+        repeat (31) @(posedge clk);
+        #1;
+        rx_lp_valid <= 1;
+        rx_lp_data <= rx_lp_data_values[i];
     end
-end
-
-initial begin
-    fork
-        # 170 tx_lp_ready <= 1'b0;
-        # 810 tx_lp_ready <= 1'b1;
-        # 830 tx_lp_ready <= 1'b0;
-        # 1470 tx_lp_ready <= 1'b1;
-        # 1490 tx_lp_ready <= 1'b0;
-        # 2130 tx_lp_ready <= 1'b1;
-        # 12710 tx_lp_ready <= 1'b0;
-        # 13350 tx_lp_ready <= 1'b1;
-    join
-end
-
-initial begin
-    fork
-        # 100 tx_pid <= 4'b1001;
-        # 12630 tx_pid <= 4'b0010;
-    join
-end
-
-initial begin
-    fork
-        # 100 tx_addr <= 7'h08;
-        # 12630 tx_addr <= 7'h00;
-    join
-end
-
-initial begin
-    fork
-        # 111 tx_valid <= 1'b1;
-        # 131 tx_valid <= 1'b0;
-        # 12651 tx_valid <= 1'b1;
-        # 12671 tx_valid <= 1'b0;
-    join
+    rx_lp_eop <= 1;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (100) @(posedge clk);
+    tx_pid <= 4'b0010; // PID = ACK
+    tx_addr <= 0;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    repeat (2) @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
 end
 `endif
+
+
+/********************** case CRC16 **********************/
+`ifdef EXAMPLE_CRC16
+// based on case1
+// test correctness of CRC16
+initial begin
+    ms <= 1'b0;
+    time_threshold <= 16'd800;
+end
+
+/* example 2 */
+// reg [7:0] rx_lp_data_values [0:6];
+// integer i;
+// initial begin
+//     rx_lp_data_values[0] = 8'h01;
+//     rx_lp_data_values[1] = 8'h02;
+//     rx_lp_data_values[2] = 8'h03;
+//     rx_lp_data_values[3] = 8'h04;
+//     rx_lp_data_values[4] = 8'h05;
+//     rx_lp_data_values[5] = 8'hd5;
+//     rx_lp_data_values[6] = 8'h44;
+// end
+
+
+/* example 1 */
+reg [7:0] rx_lp_data_values [0:5];
+integer i;
+initial begin
+    rx_lp_data_values[0] = 8'h82;
+    rx_lp_data_values[1] = 8'h65;
+    rx_lp_data_values[2] = 8'h90;
+    rx_lp_data_values[3] = 8'h16;
+    rx_lp_data_values[4] = 8'h2a;
+    rx_lp_data_values[5] = 8'h72;
+end
+
+
+/* example 3 */
+// reg [7:0] rx_lp_data_values [0:6];
+// integer i;
+// initial begin
+//     rx_lp_data_values[0] = 8'h03;
+//     rx_lp_data_values[1] = 8'h04;
+//     rx_lp_data_values[2] = 8'h05;
+//     rx_lp_data_values[3] = 8'h06;
+//     rx_lp_data_values[4] = 8'h07;
+//     rx_lp_data_values[5] = 8'hcc;
+//     rx_lp_data_values[6] = 8'hac;
+// end
+
+
+
+
+initial begin
+    #100;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11100001; // PID = OUT TOKEN
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h60;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (81) @(posedge clk);
+    rx_lp_eop <= 0;
+    rx_lp_data <= 8'd0;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    for (i = 1; i <= 5; i = i + 1) begin
+        @(posedge clk);
+        #1;
+        rx_lp_valid <= 0;
+        repeat (31) @(posedge clk);
+        #1;
+        rx_lp_valid <= 1;
+        rx_lp_data <= rx_lp_data_values[i];
+    end
+    rx_lp_eop <= 1;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (10) @(posedge clk);
+    tx_pid <= 4'b0010; // PID = ACK
+    tx_addr <= 7'd8;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    repeat (2) @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+end
+`endif
+
+
+/********************** case CRC5 **********************/
+`ifdef EXAMPLE_CRC5
+initial begin
+    ms <= 1'b0;
+    time_threshold <= 16'd200;
+end
+
+reg [7:0] tx_lt_data_values [0:8];
+integer i;
+
+initial begin
+    tx_lt_data_values[0] = 8'h01;
+    tx_lt_data_values[1] = 8'h02;
+    tx_lt_data_values[2] = 8'h03;
+    tx_lt_data_values[3] = 8'h04;
+    tx_lt_data_values[4] = 8'h05;
+    tx_lt_data_values[5] = 8'h06;
+    tx_lt_data_values[6] = 8'h07;
+    tx_lt_data_values[7] = 8'he2;
+    tx_lt_data_values[8] = 8'h8e;
+end
+
+reg [7:0] rx_lp_data_values [0:1];
+
+// example 1
+// initial begin
+//     rx_lp_data_values[0] = 8'h88;
+//     rx_lp_data_values[1] = 8'hf9;
+// end
+
+// example 2
+// initial begin
+//     rx_lp_data_values[0] = 8'h08;
+//     rx_lp_data_values[1] = 8'h32;
+// end
+
+// example 3
+initial begin
+    self_addr <= 7'd4;
+    rx_lp_data_values[0] = 8'h04;
+    rx_lp_data_values[1] = 8'h7a;
+end
+
+
+// slave rx TOKEN IN
+initial begin
+    #100;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b01101001; // PID = IN TOKEN
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[1];
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 1;
+    tx_lt_valid <= 1;
+    tx_lt_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 0;
+    tx_lt_data <= tx_lt_data_values[0];
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_data <= tx_lt_data_values[1];
+    for (i = 2; i <= 8; i = i + 1) begin
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        #1;
+        tx_lt_data <= tx_lt_data_values[i];
+    end
+    tx_lt_eop <= 1;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_valid <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    repeat (49) @(posedge clk);
+    rx_lp_eop <= 0;
+    rx_lp_data <= 8'd0;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11010010; // PID = ACK
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+end
+`endif
+
+
+
 
 `ifdef FSDB
 initial begin
