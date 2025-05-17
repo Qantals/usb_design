@@ -227,7 +227,9 @@ always @(posedge clk or negedge rst_n) begin
         time_out <= 1'b0;
     end else if (timer == time_threshold) begin
         time_out <= 1'b1;
-    end else;
+    end else begin
+        time_out <= 1'b0;
+    end
 end
 
 always @(posedge clk or negedge rst_n) begin
