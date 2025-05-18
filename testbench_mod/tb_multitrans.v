@@ -2,11 +2,14 @@
 
 /* multiple transactions with address, timeout and CRC5 test */
 
-`define CASE00110
-// `define CASE22332
+// `define CASE00110
+`define CASE22332
 // `define ADDR_0F0T1F1T // addr test
+
+// select one in these below
 // `define TIMEOUT // timeout for CASE00110, CASE22332 and ADDR0F0T1F1T
-`define CRC5 // CRC5 ERROR (available case0,1) for CASE00110: FTFTF
+// `define CRC5 // CRC5 ERROR (available case0,1) for CASE00110: FTFTF
+`define CRC16 // CRC16 ERROR (available case1,3) for CASE00110: __FT_, for CASE22332: __FT_
 
 module usb_link_top_tb ();
 
@@ -182,9 +185,9 @@ initial begin
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     `ifdef CRC5
-    rx_lp_data <= 8'hD0; // wrong CRC5
+        rx_lp_data <= 8'hD0; // wrong CRC5
     `else
-    rx_lp_data <= 8'h60;
+        rx_lp_data <= 8'h60;
     `endif
     @(posedge clk);
     #1;
@@ -326,7 +329,7 @@ initial begin
     // interval
     repeat (100) @(posedge clk);
 
-    // case 1 (select wrong CRC5)
+    // case 1 (select wrong CRC5, CRC16)
     @(posedge clk);
     #1;
     rx_lp_sop <= 1;
@@ -350,9 +353,9 @@ initial begin
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     `ifdef CRC5
-    rx_lp_data <= 8'hC0; // wrong CRC5
+        rx_lp_data <= 8'hC0; // wrong CRC5
     `else
-    rx_lp_data <= 8'h60;
+        rx_lp_data <= 8'h60;
     `endif
     @(posedge clk);
     #1;
@@ -380,7 +383,11 @@ initial begin
         repeat (31) @(posedge clk);
         #1;
         rx_lp_valid <= 1;
-        rx_lp_data <= rx_lp_data_values[i];
+        `ifdef CRC16
+            rx_lp_data <= (i == 8) ? 8'hFF : rx_lp_data_values[i];
+        `else
+            rx_lp_data <= rx_lp_data_values[i];
+        `endif
     end
     rx_lp_eop <= 1;
     @(posedge clk);
@@ -506,9 +513,9 @@ initial begin
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     `ifdef CRC5
-    rx_lp_data <= 8'hB0;
+        rx_lp_data <= 8'hB0;
     `else
-    rx_lp_data <= 8'h60;
+        rx_lp_data <= 8'h60;
     `endif
     @(posedge clk);
     #1;
@@ -758,7 +765,7 @@ initial begin
     // interval
     repeat (100) @(posedge clk);
 
-    // case 3
+    // case 3 (select error CRC16)
     @(negedge clk);
     tx_pid <= 4'b1001; // PID = IN TOKEN
     tx_addr <= 7'h08;
@@ -797,7 +804,11 @@ initial begin
         repeat (31) @(posedge clk);
         #1;
         rx_lp_valid <= 1;
-        rx_lp_data <= rx_lp_data_values[i];
+        `ifdef CRC16
+            rx_lp_data <= (i == 8) ? 8'hFF : rx_lp_data_values[i];
+        `else
+            rx_lp_data <= rx_lp_data_values[i];
+        `endif
     end
     rx_lp_eop <= 1;
     @(posedge clk);
