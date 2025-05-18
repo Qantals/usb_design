@@ -1,5 +1,13 @@
 `timescale 1ns / 1ps
-`define CASE3
+`define HS0
+// phy / link layer wait spacing, choose only one these below
+// `define WAIT0 // lp > lt
+// `define WAIT1 // lp < lt
+// `define WAIT2 // lp = lt != 0
+// `define WAIT3 // lp = lt = 0
+// `define WAIT4 // lp = 0, lt != 0
+`define WAIT5 // lp != 0, lt = 0
+// no WAIT define: custom (simulate original case)
 
 module usb_link_top_tb ();
 
@@ -105,21 +113,60 @@ initial begin
 end
 
 initial begin
-    // # 22670;
-    #30000;
+    # 22670;
     $finish;
+end
+
+// define handshake wait spacing
+integer wait_lp, wait_lt;
+initial begin
+    `ifdef WAIT0
+        // lp > lt
+        wait_lp = 16;
+        wait_lt = 10;
+    `elsif WAIT1
+        // lp < lt
+        wait_lp = 10;
+        wait_lt = 16;
+    `elsif WAIT2
+        // lp = lt != 0
+        wait_lp = 10;
+        wait_lt = 10;
+    `elsif WAIT3
+        // lp = lt = 0
+        wait_lp = 0;
+        wait_lt = 0;
+    `elsif WAIT4
+        // lp = 0, lt != 0
+        wait_lp = 0;
+        wait_lt = 10;
+    `elsif WAIT5
+        // lp != 0, lt = 0
+        wait_lp = 10;
+        wait_lt = 0;
+    `else
+        // custom
+        `ifdef HS1
+            wait_lp = 31;
+        `elsif HS3
+            wait_lp = 31;
+        `else
+            wait_lp = 32;
+        `endif
+        wait_lt = 0;
+    `endif
 end
 
 
 /********************** case 0 **********************/
-`ifdef CASE0
+`ifdef HS0
 initial begin
     ms <= 1'b0;
     time_threshold <= 16'd200;
 end
 
 reg [7:0] tx_lt_data_values [0:8];
-integer i;
+integer i,j;
 
 initial begin
     tx_lt_data_values[0] = 8'h01;
@@ -133,12 +180,15 @@ initial begin
     tx_lt_data_values[8] = 8'h8e;
 end
 
+// automated data check
+reg [7:0] check_data0 [0:2]; // TOKEN
+reg [7:0] check_data1 [0:9]; // DATA0
+reg [7:0] check_data2; // ACK
 
 initial begin
     #100;
     @(posedge clk);
     #1;
-
 
     /* slave rx TOKEN IN */
     // handshake: phy:
@@ -150,28 +200,30 @@ initial begin
     rx_lp_valid <= 1;
     rx_lp_data <= 8'b01101001; // PID = IN TOKEN
     @(posedge clk);
+    check_data0[0] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     #1;
     // byte 1: endp[0], addr
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'h08;
     @(posedge clk);
+    check_data0[1] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     #1;
     // byte 2: crc, endp[3:1]
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'h60;
     @(posedge clk);
+    check_data0[2] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
     // finish rx TOKEN IN
-
 
     /* slave tx DATA0 */
     // handshake: link layer:
@@ -181,58 +233,53 @@ initial begin
     //      module output level tx_lp_valid from link layer
     //      module input pulse tx_lp_ready
 
-    // link layer byte 0: PID
-    @(posedge clk);
-    #1;
-    tx_lt_sop <= 1;
-    tx_lt_valid <= 1;
-    tx_lt_data <= 8'b11000011; // PID = DATA0
-    @(posedge clk);
-    #1;
-    // phy byte 0
-    // link layer byte 1
-    tx_lt_sop <= 0;
-    tx_lt_data <= tx_lt_data_values[0];
-    @(posedge clk);
-    // phy finish taking byte 0, not ready for byte 1.
-    tx_lp_ready <= 0;
-    #1;
-    // link layer byte 2
-    tx_lt_data <= tx_lt_data_values[1];
-    for (i = 2; i <= 8; i = i + 1) begin // link layer byte 3 ~ 9
-        repeat (32) @(posedge clk);
-        tx_lp_ready <= 1;
-        @(posedge clk);
-        // phy finish taking byte i-1, not ready for byte i
-        tx_lp_ready <= 0;
-        #1;
-        // link layer byte i+1
-        tx_lt_data <= tx_lt_data_values[i];
-    end
-    // link layer byte 9
-    tx_lt_eop <= 1;
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-    @(posedge clk);
-    // phy finish taking byte 8, not ready for byte 9
-    tx_lp_ready <= 0;
-    #1;
-    // link layer close
-    tx_lt_valid <= 0;
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-    @(posedge clk);
-    // phy finish taking byte 9, not ready for empty
-    tx_lp_ready <= 0;
+    fork
+        begin // link layer
+            @(posedge clk);
+            #1;
+            // link layer byte 0: PID
+            tx_lt_sop <= 1;
+            tx_lt_data <= 8'b11000011; // PID = DATA0
+            tx_lt_valid <= 1;
+            @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+            #1;
+            tx_lt_valid <= 0;
+            repeat (wait_lt) @(posedge clk);
+            #1;
+            // link layer byte 1
+            tx_lt_sop <= 0;
+            tx_lt_data <= tx_lt_data_values[0];
+            tx_lt_valid <= 1;
+            for (i = 1; i <= 8; i = i + 1) begin // link layer byte 2 ~ 9
+                @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+                #1;
+                tx_lt_valid <= 0;
+                repeat (wait_lt) @(posedge clk);
+                #1;
+                // link layer byte i+1
+                tx_lt_data <= tx_lt_data_values[i];
+                tx_lt_valid <= 1;
+            end
+            // link layer byte 9
+            tx_lt_eop <= 1;
+            @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+            #1;
+            // link layer close
+            tx_lt_valid <= 0;
+        end
 
-    /* TODO: start delay count 0 to 0, 7410 ns */
-    /* TODO: start timeout count 0 to 0, 7410 ns */
-
-    repeat (32) @(posedge clk);
-    // phy ready for empty, but module output tx_lp_valid = 0 now
-    tx_lp_ready <= 1;
+        begin // phy
+            for (j = 0; j <= 9; j = j + 1) begin
+                @(posedge clk); while(!tx_lp_valid) @(posedge clk);           
+                // phy finish taking byte j, not ready for byte j+1 (byte 10 = empty)
+                check_data1[j] <= tx_lp_data;
+                tx_lp_ready <= 0;
+                repeat (wait_lp) @(posedge clk);
+                tx_lp_ready <= 1;
+            end
+        end
     // finish tx DATA0
-
+    join
 
     /* slave rx ACK */
     // handshake: phy:
@@ -252,22 +299,23 @@ initial begin
     rx_lp_data <= 8'b11010010; // PID = ACK
     @(posedge clk);
     #1;
+    check_data2 <= rx_lp_data;
     rx_lp_valid <= 0;
-
-    /* TODO: finish timeout next clock count 83 to 0, 9090 ns */
+    repeat (30) @(posedge clk);
+    $stop;
 end
 `endif
 
 
 /********************** case 1 **********************/
-`ifdef CASE1
+`ifdef HS1
 initial begin
     ms <= 1'b0;
     time_threshold <= 16'd800;
 end
 
 reg [7:0] rx_lp_data_values [0:8];
-integer i;
+integer i,j;
 
 initial begin
     rx_lp_data_values[0] = 8'h01;
@@ -281,47 +329,51 @@ initial begin
     rx_lp_data_values[8] = 8'h8e;
 end
 
+// automated data check
+reg [7:0] check_data0 [0:2]; // TOKEN
+reg [7:0] check_data1 [0:9]; // DATA0
+reg [7:0] check_data2; // ACK
 
 initial begin
     #100;
     @(posedge clk);
     #1;
 
-
     /* slave rx TOKEN OUT */
     // handshake: phy:
     //      module output level rx_lp_ready
     //      module input pulse rx_lp_valid
 
+    /* REFERENCE TO HS0 */
     // byte 0: PID
     rx_lp_sop <= 1;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'b11100001; // PID = OUT TOKEN
     @(posedge clk);
+    check_data0[0] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
     // byte 1: endp[0], addr
-    repeat (31) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'h08;
     @(posedge clk);
+    check_data0[1] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
     // byte 2: crc, endp[3:1]
-    repeat (31) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     #1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'h60;
     @(posedge clk);
+    check_data0[2] <= rx_lp_data;
     #1;
     rx_lp_valid <= 0;
-    // end phy
-
-    /* TODO: start timeout next clock count 0 to 0, 1430ns */
-
+    /* TODO: start timeout next clock count 0 to 0 */
 
     /* slave rx DATA0 */
     // handshake: phy:
@@ -331,43 +383,53 @@ initial begin
     //      module output pulse rx_lt_valid, from phy
     //      module input level rx_lt_ready
 
-    repeat (81) @(posedge clk);
+    /* REFERENCE TO HS3 */
+    repeat (10) @(posedge clk);
     // phy reset
     rx_lp_eop <= 0;
     rx_lp_data <= 8'd0;
-    @(posedge clk);
-    #1;
-    // phy byte 0: PID
-    rx_lp_sop <= 1;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'b11000011; // PID = DATA0
-    @(posedge clk);
 
-    /* TODO: stop timeout count 81 to 0, 3070ns */
+    fork
+        begin // phy
+            @(posedge clk);
+            #1;
+            rx_lp_sop <= 1;
+            rx_lp_data <= 8'b11000011; // PID = DATA0
+            rx_lp_valid <= 1;
+            @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+            /* TODO: stop timeout */
+            #1;
+            rx_lp_valid <= 0;
+            repeat (wait_lp) @(posedge clk);
+            #1;
+            rx_lp_sop <= 0;
+            rx_lp_data <= rx_lp_data_values[0];
+            rx_lp_valid <= 1;
+            for (i = 1; i <= 8; i = i + 1) begin
+                @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+                #1;
+                rx_lp_valid <= 0;
+                repeat (wait_lp) @(posedge clk);
+                #1;
+                rx_lp_data <= rx_lp_data_values[i];
+                rx_lp_valid <= 1;
+            end
+            rx_lp_eop <= 1;
+            @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+            #1;
+            rx_lp_valid <= 0;
+        end
 
-    #1;
-    rx_lp_valid <= 0;
-    // phy byte 1
-    repeat (31) @(posedge clk);
-    #1;
-    rx_lp_sop <= 0;
-    rx_lp_valid <= 1;
-    rx_lp_data <= rx_lp_data_values[0];
-    for (i = 1; i <= 8; i = i + 1) begin
-        @(posedge clk);
-        #1;
-        rx_lp_valid <= 0;
-        repeat (31) @(posedge clk);
-        #1;
-        // phy byte i+1
-        rx_lp_valid <= 1;
-        rx_lp_data <= rx_lp_data_values[i];
-    end
-    rx_lp_eop <= 1;
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    // finish phy
+        begin // link layer
+            for (j = 0; j <= 9; j = j + 1) begin
+                 @(posedge clk); while(!rx_lt_valid) @(posedge clk);           
+                check_data1[j] <= rx_lt_data;
+                rx_lt_ready <= 0;               
+                repeat (wait_lt) @(posedge clk);
+                rx_lt_ready <= 1;
+            end
+        end
+    join
 
 
     /* slave tx ACK */
@@ -378,38 +440,37 @@ initial begin
     //      module output pulse (one package level) tx_lp_valid, from link layer
     //      module input pulse tx_lp_ready
 
-    repeat (10) @(posedge clk);
+    /* REFERENCE TO HS3 */
+    repeat (20) @(posedge clk);
     tx_pid <= 4'b0010; // PID = ACK
     tx_addr <= 7'd8;
-    @(posedge clk);
-    #1;
-    // link layer byte 0: PID
+    // @(posedge clk);
+    // #1;
     tx_valid <= 1;
     @(posedge clk);
     #1;
     tx_valid <= 0;
-    // phy byte 0 at next clock
     repeat (2) @(posedge clk);
-
     /* TODO: start dealy count 0 to 0, 9110ns */
-
-    // phy finish taking byte0 not ready for empty
+    check_data2 <= tx_lp_data;
     tx_lp_ready <= 0;
-    repeat (32) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     tx_lp_ready <= 1;
+    repeat (30) @(posedge clk);
+    $stop;
 end
 `endif
 
 
 /********************** case 2 **********************/
-`ifdef CASE2
+`ifdef HS2
 initial begin
     ms <= 1'b1;
     time_threshold <= 16'd800;
 end
 
 reg [7:0] tx_lt_data_values [0:14];
-integer i;
+integer i,j;
 
 initial begin
     tx_lt_data_values[0] = 8'h01;
@@ -429,6 +490,11 @@ initial begin
     tx_lt_data_values[14] = 8'hef;
 end
 
+// automated data check
+reg [7:0] check_data0 [0:2]; // TOKEN
+reg [7:0] check_data1 [0:15]; // DATA0
+reg [7:0] check_data2; // ACK
+
 initial begin
     #100;
 
@@ -440,25 +506,23 @@ initial begin
     //      module output level tx_lp_valid from link_control
     //      module input pulse tx_lp_ready
 
+    /* REFERENCE TO HS3 */
     tx_pid <= 4'b0001; // PID = OUT
     tx_addr <= 7'd8;
-    @(posedge clk);
-    #1;
-    // link layer byte 0: PID, addr, endp
+    // @(posedge clk);
+    // #1;
     tx_valid <= 1;
     @(posedge clk);
     #1;
     tx_valid <= 0;
     @(posedge clk);
-    // phy byte 0
-    repeat (3) begin
+    for (i = 0; i <= 2; i = i + 1) begin
         @(posedge clk);
-        // phy finish taking byte 0-1-2, not ready for byte 1-2-empty
+        check_data0[i] <= tx_lp_data;
         tx_lp_ready <= 0;
-        repeat (32) @(posedge clk);
+        repeat (wait_lp) @(posedge clk);
         tx_lp_ready <= 1;
     end
-    // phy finish
 
     /* master tx DATA0 */
     // handshake: link layer:
@@ -468,74 +532,68 @@ initial begin
     //      module output level tx_lp_valid from link layer
     //      module input pulse tx_lp_ready
 
-    repeat (136) @(posedge clk);
-    #1;
-    // link layer byte 0: PID
-    tx_lt_sop <= 1;
-    tx_lt_valid <= 1;
-    tx_lt_data <= 8'b11000011; // PID = DATA0
-    @(posedge clk);
-    #1;
-    // phy byte 0
-    // link layer byte 1
-    tx_lt_sop <= 0;
-    tx_lt_data <= tx_lt_data_values[0];
-    @(posedge clk);
-    // phy finish taking byte 0, not ready for byte 1
-    tx_lp_ready <= 0;
-    #1;
-    // link layer byte 2
-    tx_lt_data <= tx_lt_data_values[1];
-    for (i = 2; i <= 14; i = i + 1) begin
-        repeat (32) @(posedge clk);
-        tx_lp_ready <= 1;
-        @(posedge clk);
-        // phy finish taking byte i-1, not ready for byte i
-        tx_lp_ready <= 0;
-        #1;
-        // link layer byte i+1
-        tx_lt_data <= tx_lt_data_values[i];
-    end
-    tx_lt_eop <= 1;
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-    @(posedge clk);
-    // phy finish taking byte 14, not ready for byte 15
-    tx_lp_ready <= 0;
-    #1;
-    tx_lt_valid <= 0;
-    // link layer finish
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-    @(posedge clk);
-    // phy finish taking byte 15, not ready for byte empty
-    tx_lp_ready <= 0;
+    /* REFERENCE TO HS0 */
+    repeat (20) @(posedge clk);
+    fork
+        begin // link layer
+            @(posedge clk);
+            #1;
+            tx_lt_sop <= 1;
+            tx_lt_data <= 8'b11000011; // PID = DATA0
+            tx_lt_valid <= 1;
+            @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+            #1;
+            tx_lt_valid <= 0;
+            repeat (wait_lt) @(posedge clk);
+            #1;
+            tx_lt_sop <= 0;
+            tx_lt_data <= tx_lt_data_values[0];
+            tx_lt_valid <= 1;
+            for (i = 1; i <= 14; i = i + 1) begin
+                @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+                #1;
+                tx_lt_valid <= 0;
+                repeat (wait_lt) @(posedge clk);
+                #1;
+                tx_lt_data <= tx_lt_data_values[i];
+                tx_lt_valid <= 1;
+            end
+            tx_lt_eop <= 1;
+            @(posedge clk); while(!tx_lt_ready) @(posedge clk);           
+            #1;
+            tx_lt_valid <= 0;
+        end
 
-    /* TODO: start delay count 0 to 0, 14790 ns */
-    /* TODO: start timeout count 0 to 0, 14790 ns */
+        begin // phy
+            for (j = 0; j <= 15; j = j + 1) begin
+                @(posedge clk); while(!tx_lp_valid) @(posedge clk);           
+                check_data1[j] <= tx_lp_data;
+                tx_lp_ready <= 0;
+                repeat (wait_lp) @(posedge clk);
+                tx_lp_ready <= 1;
+            end
+        end
+    join
 
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-    // phy finish
 
     /* master rx ACK */
     // handshake: phy:
     //      module output level rx_lp_ready
     //      module input pulse rx_lp_valid
 
+    /* REFERENCE TO HS0 */
     repeat (36) @(posedge clk);
     #1;
-    // byte 0: PID
     rx_lp_sop <= 1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
     rx_lp_data <= 8'b11010010; // PID = ACK
     @(posedge clk);
     #1;
+    check_data2 <= rx_lp_data;
     rx_lp_valid <= 0;
-
-    /* TODO: finish timeout next clock count 69 to 0, 16190 ns */
-
+    repeat (30) @(posedge clk);
+    $stop;
 end
 `endif
 
@@ -543,14 +601,14 @@ end
 
 
 /********************** case 3 **********************/
-`ifdef CASE3
+`ifdef HS3
 initial begin
     ms <= 1'b1;
     time_threshold <= 16'd800;
 end
 
 reg [7:0] rx_lp_data_values [0:8];
-integer i;
+integer i,j;
 
 initial begin
     rx_lp_data_values[0] = 8'h01;
@@ -564,9 +622,13 @@ initial begin
     rx_lp_data_values[8] = 8'h8e;
 end
 
+// automated data check
+reg [7:0] check_data0 [0:2]; // TOKEN
+reg [7:0] check_data1 [0:9]; // DATA0
+reg [7:0] check_data2; // ACK
+
 initial begin
     #100;
-
 
     /* master tx TOKEN IN */
     // handshake: link layer:
@@ -576,75 +638,92 @@ initial begin
     //      module output level tx_lp_valid from link layer
     //      module input pulse tx_lp_ready
 
-    // link layer byte 0: PID, ADDR, ENDP=0
+    // link layer byte 0
     tx_pid <= 4'b1001; // PID = IN TOKEN
     tx_addr <= 7'h08;
-    @(posedge clk);
-    #1;
+    // @(posedge clk);
+    // #1;
     tx_valid <= 1;
     @(posedge clk);
     #1;
     tx_valid <= 0;
     @(posedge clk);
-
-    /* TODO: start timeout count 0 to 0, 150ns */
-
     // phy byte 0
-    repeat (3) begin
+    for (i = 0; i <= 2; i = i + 1) begin
         @(posedge clk);
         // phy finish taking byte 0-1-2, not ready for byte 1-2-empty
+        check_data0[i] <= tx_lp_data;
         tx_lp_ready <= 0;
-
-        /* TODO: start delay 3rd iteration count 0 to 0, 1490ns */
-
-        repeat (32) @(posedge clk);
+        repeat (wait_lp) @(posedge clk);
         tx_lp_ready <= 1;
     end
     // phy finish
 
-
     /* master rx DATA0 */
     // handshake: phy:
     //      module output level rx_lp_ready from link layer
-    //      module input pulse rx_lp_valid
+    //      module input pulse rx_lp_valid (with 1 ns)
     // handhake: link layer:
     //      module output pulse rx_lt_valid from phy
     //      module input level rx_lt_ready
 
-    repeat (136) @(posedge clk);
-    #1;
-    // phy byte 0: PID
-    rx_lp_sop <= 1;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'b11000011; // PID = DATA0
-    @(posedge clk);
+    repeat (70) @(posedge clk); // delay control
+    fork
+        begin // phy
+            @(posedge clk);
+            #1;
+            // phy byte 0: PID
+            rx_lp_sop <= 1;
+            rx_lp_data <= 8'b11000011; // PID = DATA0
+            rx_lp_valid <= 1;
+            @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+            #1;
+            rx_lp_valid <= 0;
+            repeat (wait_lp) @(posedge clk);
+            #1;
+            // phy byte 1
+            rx_lp_sop <= 0;
+            rx_lp_data <= rx_lp_data_values[0];
+            rx_lp_valid <= 1;
+            for (i = 1; i <= 8; i = i + 1) begin // phy byte 2 ~ 9
+                @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+                #1;
+                rx_lp_valid <= 0;
+                repeat (wait_lp) @(posedge clk);
+                #1;
+                // phy byte i+1
+                rx_lp_data <= rx_lp_data_values[i];
+                rx_lp_valid <= 1;
+            end
+            // phy byte 9
+            rx_lp_eop <= 1;
+            @(posedge clk); while(!rx_lp_ready) @(posedge clk);           
+            #1;
+            // phy close
+            rx_lp_valid <= 0;
+        end
 
-    /* TODO: finish timeout count 235 to 0, 4870ns */
+        begin // link layer
+            for (j = 0; j <= 9; j = j + 1) begin
+                 @(posedge clk); while(!rx_lt_valid) @(posedge clk);           
+                // link layer finish taking byte j, not ready for byte j+1 (byte 10 = empty)
+                check_data1[j] <= rx_lt_data;
+                rx_lt_ready <= 0;               
+                repeat (wait_lt) @(posedge clk);
+                rx_lt_ready <= 1;
+            end
+        end
+    // finish rx DATA0
+    join
 
-    #1;
-    rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
-    #1;
-    // phy byte 1
-    rx_lp_sop <= 0;
-    rx_lp_valid <= 1;
-    rx_lp_data <= rx_lp_data_values[0];
-    for (i = 1; i <= 8; i = i + 1) begin
-        @(posedge clk);
-        #1;
-        rx_lp_valid <= 0;
-        repeat (31) @(posedge clk);
-        #1;
-        // phy byte i+1
-        rx_lp_valid <= 1;
-        rx_lp_data <= rx_lp_data_values[i];
-    end
-    rx_lp_eop <= 1;
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    // phy finish
-
+    // check data
+    // if (check_data[0] != 8'b11000011)
+    //     $display("find mismatch value: byte 0, check_data: 0x%0h, standard value: 0x%0h\n", check_data[0], 8'b11000011);
+    // for(i = 1; i <= 9; i = i + 1) begin
+    //     if (check_data[i] != rx_lp_data_values[i - 1])
+    //         $display("find mismatch value: byte %0d, check_data: 0x%0h, standard value: 0x%0h\n",
+    //             i, check_data[i], rx_lp_data_values[i - 1]);
+    // end
 
     /* master tx ACK */
     // handshake: link layer:
@@ -654,12 +733,12 @@ initial begin
     //      module output pulse (one package level) tx_lp_valid from link layer
     //      module input pulse tx_lp_ready
 
-    repeat (100) @(posedge clk);
+    repeat (20) @(posedge clk);
     // link layer byte 0: PID
     tx_pid <= 4'b0010; // PID = ACK
     tx_addr <= 0;
-    @(posedge clk);
-    #1;
+    // @(posedge clk);
+    // #1;
     tx_valid <= 1;
     @(posedge clk);
     #1;
@@ -667,10 +746,13 @@ initial begin
     // link layer finish
     // after one clock: phy byte 0
     repeat (2) @(posedge clk);
+    check_data2 <= tx_lp_data;
     tx_lp_ready <= 0;
     // phy finish
-    repeat (32) @(posedge clk);
+    repeat (wait_lp) @(posedge clk);
     tx_lp_ready <= 1;
+    repeat (30) @(posedge clk);
+    $stop;
 end
 `endif
 

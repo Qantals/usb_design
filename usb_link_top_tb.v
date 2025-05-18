@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define CASE2
+`define CASE3
 
 module usb_link_top_tb ();
 
@@ -148,7 +148,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr=4'h4, endp=4'h3, crc5=5'h1f
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -247,7 +247,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;

@@ -1,7 +1,10 @@
 `timescale 1ns / 1ps
 `define EXAMPLE_CRC5
-`define EXAMPLE3
-// `define BAD1
+// these macro choose 1
+// `define EXAMPLE1
+// `define EXAMPLE2
+// `define EXAMPLE3
+`define BAD1
 
 module usb_link_top_tb ();
 
