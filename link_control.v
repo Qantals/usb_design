@@ -225,11 +225,11 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         time_out <= 1'b0;
+    end else if (time_out) begin
+        time_out <= 1'b0;
     end else if (timer == time_threshold) begin
         time_out <= 1'b1;
-    end else begin
-        time_out <= 1'b0;
-    end
+    end else;
 end
 
 always @(posedge clk or negedge rst_n) begin

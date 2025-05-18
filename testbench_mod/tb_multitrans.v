@@ -1,7 +1,12 @@
 `timescale 1ns / 1ps
-// `define CASE00110
+
+/* multiple transactions with address, timeout and CRC5 test */
+
+`define CASE00110
 // `define CASE22332
-`define CASE0F0T1F1T // addr test
+// `define ADDR_0F0T1F1T // addr test
+// `define TIMEOUT // timeout for CASE00110, CASE22332 and ADDR0F0T1F1T
+`define CRC5 // CRC5 ERROR (available case0,1) for CASE00110: FTFTF
 
 module usb_link_top_tb ();
 
@@ -116,8 +121,11 @@ end
 
 initial begin
     ms <= 1'b0;
-    time_threshold <= 16'd200;
-    // time_threshold <= 16'd800;
+    `ifdef TIMEOUT
+    time_threshold <= 16'd20;
+    `else
+    time_threshold <= 16'd800;
+    `endif
 end
 
 // case 0
@@ -151,7 +159,7 @@ end
 
 // slave rx TOKEN IN
 initial begin
-    // case 0
+    // case 0 (select wrong CRC5)
     #100;
     @(posedge clk);
     #1;
@@ -165,7 +173,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr=4'h4, endp=4'h3, crc5=5'h1f
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -173,7 +181,11 @@ initial begin
     #1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
+    `ifdef CRC5
+    rx_lp_data <= 8'hD0; // wrong CRC5
+    `else
     rx_lp_data <= 8'h60;
+    `endif
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -246,7 +258,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr=4'h4, endp=4'h3, crc5=5'h1f
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -314,7 +326,7 @@ initial begin
     // interval
     repeat (100) @(posedge clk);
 
-    // case 1
+    // case 1 (select wrong CRC5)
     @(posedge clk);
     #1;
     rx_lp_sop <= 1;
@@ -329,7 +341,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -337,7 +349,11 @@ initial begin
     #1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
+    `ifdef CRC5
+    rx_lp_data <= 8'hC0; // wrong CRC5
+    `else
     rx_lp_data <= 8'h60;
+    `endif
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -405,7 +421,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -466,7 +482,7 @@ initial begin
     // interval
     repeat (100) @(posedge clk);
 
-    // case 0
+    // case 0 (select wrong CRC5)
     @(posedge clk);
     #1;
     rx_lp_sop <= 1;
@@ -481,7 +497,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr=4'h4, endp=4'h3, crc5=5'h1f
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -489,7 +505,11 @@ initial begin
     #1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
+    `ifdef CRC5
+    rx_lp_data <= 8'hB0;
+    `else
     rx_lp_data <= 8'h60;
+    `endif
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -557,7 +577,11 @@ end
 
 initial begin
     ms <= 1'b1;
+    `ifdef TIMEOUT
+    time_threshold <= 16'd20;
+    `else
     time_threshold <= 16'd800;
+    `endif
 end
 
 // case 2
@@ -938,7 +962,7 @@ end
 
 
 /********************** case 0, 1 with some true / false addr **********************/
-`ifdef CASE0F0T1F1T
+`ifdef ADDR_0F0T1F1T
 initial begin
     # 70000;
     $finish;
@@ -946,8 +970,11 @@ end
 
 initial begin
     ms <= 1'b0;
+    `ifdef TIMEOUT
+    time_threshold <= 16'd20;
+    `else
     time_threshold <= 16'd200;
-    // time_threshold <= 16'd800;
+    `endif
 end
 
 // case 0

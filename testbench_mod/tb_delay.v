@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define TIMEOUT0
+`define DELAY3
 
 module usb_link_top_tb ();
 
@@ -112,10 +112,10 @@ end
 
 
 /********************** case 0 **********************/
-`ifdef TIMEOUT0
+`ifdef DELAY0
 initial begin
     ms <= 1'b0;
-    time_threshold <= 16'd70;
+    time_threshold <= 16'd200;
 end
 
 reg [7:0] tx_lt_data_values [0:8];
@@ -240,7 +240,9 @@ initial begin
     //      module input pulse rx_lp_valid
 
     // byte 0: PID
-    repeat (49) @(posedge clk);
+    // TODO: delay problem check
+    // repeat (49) @(posedge clk);
+    repeat (20) @(posedge clk);
     // reset multi data
     rx_lp_eop <= 0;
     rx_lp_data <= 8'd0;
@@ -260,10 +262,10 @@ end
 
 
 /********************** case 1 **********************/
-`ifdef TIMEOUT1
+`ifdef DELAY1
 initial begin
     ms <= 1'b0;
-    time_threshold <= 16'd70;
+    time_threshold <= 16'd800;
 end
 
 reg [7:0] rx_lp_data_values [0:8];
@@ -395,17 +397,19 @@ initial begin
 
     // phy finish taking byte0 not ready for empty
     tx_lp_ready <= 0;
-    repeat (32) @(posedge clk);
+    // TODO: delay problem check
+    // repeat (32) @(posedge clk);
+    repeat (20) @(posedge clk);
     tx_lp_ready <= 1;
 end
 `endif
 
 
 /********************** case 2 **********************/
-`ifdef TIMEOUT2
+`ifdef DELAY2
 initial begin
     ms <= 1'b1;
-    time_threshold <= 16'd66;
+    time_threshold <= 16'd800;
 end
 
 reg [7:0] tx_lt_data_values [0:14];
@@ -523,7 +527,9 @@ initial begin
     //      module output level rx_lp_ready
     //      module input pulse rx_lp_valid
 
-    repeat (36) @(posedge clk);
+    // TODO: delay problem check
+    // repeat (36) @(posedge clk);
+    repeat (20) @(posedge clk);
     #1;
     // byte 0: PID
     rx_lp_sop <= 1;
@@ -543,10 +549,10 @@ end
 
 
 /********************** case 3 **********************/
-`ifdef TIMEOUT3
+`ifdef DELAY3
 initial begin
     ms <= 1'b1;
-    time_threshold <= 16'd200;
+    time_threshold <= 16'd800;
 end
 
 reg [7:0] rx_lp_data_values [0:8];
@@ -611,7 +617,9 @@ initial begin
     //      module output pulse rx_lt_valid from phy
     //      module input level rx_lt_ready
 
-    repeat (136) @(posedge clk);
+    // TODO: delay problem check
+    // repeat (136) @(posedge clk);
+    repeat (20) @(posedge clk);
     #1;
     // phy byte 0: PID
     rx_lp_sop <= 1;
