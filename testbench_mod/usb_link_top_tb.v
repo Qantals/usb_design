@@ -1,10 +1,4 @@
 `timescale 1ns / 1ps
-// `define EXAMPLE_CRC5
-// these macro choose 1
-// `define EXAMPLE1
-// `define EXAMPLE2
-// `define EXAMPLE3
-// `define BAD1
 
 module usb_link_top_tb ();
 
@@ -115,160 +109,8 @@ initial begin
 end
 
 
-/********************** case CRC16 **********************/
-`ifdef EXAMPLE_CRC16
-// based on case1
-// test correctness of CRC16, support any DATA0 length
-initial begin
-    ms <= 1'b0;
-    time_threshold <= 16'd800;
-end
-
-/* example 1 */
-`ifdef EXAMPLE1
-`define DATA_LEN 6
-reg [7:0] rx_lp_data_values [0:5];
-integer i;
-initial begin
-    rx_lp_data_values[0] = 8'h82;
-    rx_lp_data_values[1] = 8'h65;
-    rx_lp_data_values[2] = 8'h90;
-    rx_lp_data_values[3] = 8'h16;
-    rx_lp_data_values[4] = 8'h2a;
-    rx_lp_data_values[5] = 8'h72;
-end
-`endif
-
-/* example 2 */
-`ifdef EXAMPLE2
-`define DATA_LEN 7
-reg [7:0] rx_lp_data_values [0:6];
-integer i;
-initial begin
-    rx_lp_data_values[0] = 8'h01;
-    rx_lp_data_values[1] = 8'h02;
-    rx_lp_data_values[2] = 8'h03;
-    rx_lp_data_values[3] = 8'h04;
-    rx_lp_data_values[4] = 8'h05;
-    rx_lp_data_values[5] = 8'hd5;
-    rx_lp_data_values[6] = 8'h44;
-end
-`endif
-
-
-/* example 3 */
-`ifdef EXAMPLE3
-`define DATA_LEN 7
-reg [7:0] rx_lp_data_values [0:6];
-integer i;
-initial begin
-    rx_lp_data_values[0] = 8'h03;
-    rx_lp_data_values[1] = 8'h04;
-    rx_lp_data_values[2] = 8'h05;
-    rx_lp_data_values[3] = 8'h06;
-    rx_lp_data_values[4] = 8'h07;
-    rx_lp_data_values[5] = 8'hcc;
-    rx_lp_data_values[6] = 8'hac;
-end
-`endif
-
-/* bad 1 */
-`ifdef BAD1
-`define DATA_LEN 7
-reg [7:0] rx_lp_data_values [0:6];
-integer i;
-initial begin
-    rx_lp_data_values[0] = 8'h01;
-    rx_lp_data_values[1] = 8'h02;
-    rx_lp_data_values[2] = 8'h03;
-    rx_lp_data_values[3] = 8'h04;
-    rx_lp_data_values[4] = 8'h05;
-    rx_lp_data_values[5] = 8'h44;
-    rx_lp_data_values[6] = 8'hd5;
-end
-`endif
-
-
-initial begin
-    #100;
-    @(posedge clk);
-    #1;
-    rx_lp_sop <= 1;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'b11100001; // PID = OUT TOKEN
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
-    #1;
-    rx_lp_sop <= 0;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'h08; // addr = 4'h8, endp = 4'h0, crc = 5'h01100
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
-    #1;
-    rx_lp_eop <= 1;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'h60;
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    repeat (81) @(posedge clk);
-    rx_lp_eop <= 0;
-    rx_lp_data <= 8'd0;
-    @(posedge clk);
-    #1;
-    rx_lp_sop <= 1;
-    rx_lp_valid <= 1;
-    rx_lp_data <= 8'b11000011; // PID = DATA0
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    repeat (31) @(posedge clk);
-    #1;
-    rx_lp_sop <= 0;
-    rx_lp_valid <= 1;
-    rx_lp_data <= rx_lp_data_values[0];
-    for (i = 1; i <= `DATA_LEN - 1; i = i + 1) begin
-        @(posedge clk);
-        #1;
-        rx_lp_valid <= 0;
-        repeat (31) @(posedge clk);
-        #1;
-        rx_lp_valid <= 1;
-        rx_lp_data <= rx_lp_data_values[i];
-    end
-    rx_lp_eop <= 1;
-    @(posedge clk);
-    #1;
-    rx_lp_valid <= 0;
-    repeat (10) @(posedge clk);
-    `ifdef BAD1
-    tx_pid <= 4'b1010; // PID = NAK
-    `else
-    tx_pid <= 4'b0010; // PID = ACK
-    `endif       
-
-    tx_addr <= 7'd8;
-    @(posedge clk);
-    #1;
-    tx_valid <= 1;
-    @(posedge clk);
-    #1;
-    tx_valid <= 0;
-    repeat (2) @(posedge clk);
-    tx_lp_ready <= 0;
-    repeat (32) @(posedge clk);
-    tx_lp_ready <= 1;
-end
-`endif
-
-
-/********************** case CRC5 **********************/
-`ifdef EXAMPLE_CRC5
-// based on case 0
+/********************** case 0 **********************/
+`ifdef CASE0
 initial begin
     ms <= 1'b0;
     time_threshold <= 16'd200;
@@ -289,40 +131,6 @@ initial begin
     tx_lt_data_values[8] = 8'h8e;
 end
 
-reg [7:0] rx_lp_data_values [0:1];
-
-// example 1
-`ifdef EXAMPLE1
-initial begin
-    rx_lp_data_values[0] = 8'h88;
-    rx_lp_data_values[1] = 8'hf9;
-end
-`endif
-
-// example 2
-`ifdef EXAMPLE2
-initial begin
-    rx_lp_data_values[0] = 8'h08;
-    rx_lp_data_values[1] = 8'h32;
-end
-`endif
-
-// example 3
-`ifdef EXAMPLE3
-initial begin
-    self_addr <= 7'd4;
-    rx_lp_data_values[0] = 8'h04;
-    rx_lp_data_values[1] = 8'h7a;
-end
-`endif
-
-// bad 1
-`ifdef BAD1
-initial begin
-    rx_lp_data_values[0] = 8'h08;
-    rx_lp_data_values[1] = 8'hD0;
-end
-`endif
 
 // slave rx TOKEN IN
 initial begin
@@ -339,7 +147,7 @@ initial begin
     #1;
     rx_lp_sop <= 0;
     rx_lp_valid <= 1;
-    rx_lp_data <= rx_lp_data_values[0];
+    rx_lp_data <= 8'h08;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
@@ -347,14 +155,10 @@ initial begin
     #1;
     rx_lp_eop <= 1;
     rx_lp_valid <= 1;
-    rx_lp_data <= rx_lp_data_values[1];
+    rx_lp_data <= 8'h60;
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
-
-
-    `ifdef BAD1
-    `else
     @(posedge clk);
     #1;
     tx_lt_sop <= 1;
@@ -401,45 +205,297 @@ initial begin
     @(posedge clk);
     #1;
     rx_lp_valid <= 0;
-    `endif
 end
 `endif
+
+
+/********************** case 1 **********************/
+`ifdef CASE1
+initial begin
+    ms <= 1'b0;
+    time_threshold <= 16'd800;
+end
+
+reg [7:0] rx_lp_data_values [0:8];
+integer i;
+
+initial begin
+    rx_lp_data_values[0] = 8'h01;
+    rx_lp_data_values[1] = 8'h02;
+    rx_lp_data_values[2] = 8'h03;
+    rx_lp_data_values[3] = 8'h04;
+    rx_lp_data_values[4] = 8'h05;
+    rx_lp_data_values[5] = 8'h06;
+    rx_lp_data_values[6] = 8'h07;
+    rx_lp_data_values[7] = 8'he2;
+    rx_lp_data_values[8] = 8'h8e;
+end
+
+
+initial begin
+    #100;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11100001; // PID = OUT TOKEN
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h08;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'h60;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (81) @(posedge clk);
+    rx_lp_eop <= 0;
+    rx_lp_data <= 8'd0;
+    @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    for (i = 1; i <= 8; i = i + 1) begin
+        @(posedge clk);
+        #1;
+        rx_lp_valid <= 0;
+        repeat (31) @(posedge clk);
+        #1;
+        rx_lp_valid <= 1;
+        rx_lp_data <= rx_lp_data_values[i];
+    end
+    rx_lp_eop <= 1;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (10) @(posedge clk);
+    tx_pid <= 4'b0010; // PID = ACK
+    tx_addr <= 7'd8;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    repeat (2) @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+end
+`endif
+
+
+/********************** case 2 **********************/
+`ifdef CASE2
+initial begin
+    ms <= 1'b1;
+    time_threshold <= 16'd800;
+end
+
+reg [7:0] tx_lt_data_values [0:14];
+integer i;
+
+initial begin
+    tx_lt_data_values[0] = 8'h01;
+    tx_lt_data_values[1] = 8'h02;
+    tx_lt_data_values[2] = 8'h03;
+    tx_lt_data_values[3] = 8'h04;
+    tx_lt_data_values[4] = 8'h05;
+    tx_lt_data_values[5] = 8'h06;
+    tx_lt_data_values[6] = 8'h07;
+    tx_lt_data_values[7] = 8'h08;
+    tx_lt_data_values[8] = 8'h09;
+    tx_lt_data_values[9] = 8'h0a;
+    tx_lt_data_values[10] = 8'h0b;
+    tx_lt_data_values[11] = 8'h0c;
+    tx_lt_data_values[12] = 8'h0d;
+    tx_lt_data_values[13] = 8'heb;
+    tx_lt_data_values[14] = 8'hef;
+end
+
+initial begin
+    #100;
+    tx_pid <= 4'b0001; // PID = OUT
+    tx_addr <= 7'd8;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    @(posedge clk);
+    repeat (3) begin
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+    end
+    repeat (136) @(posedge clk);
+    #1;
+    tx_lt_sop <= 1;
+    tx_lt_valid <= 1;
+    tx_lt_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    tx_lt_sop <= 0;
+    tx_lt_data <= tx_lt_data_values[0];
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_data <= tx_lt_data_values[1];
+    for (i = 2; i <= 14; i = i + 1) begin
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        #1;
+        tx_lt_data <= tx_lt_data_values[i];
+    end
+    tx_lt_eop <= 1;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    #1;
+    tx_lt_valid <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+    repeat (36) @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_eop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11010010; // PID = ACK
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+end
+`endif
+
+
+
+
+/********************** case 3 **********************/
+`ifdef CASE3
+initial begin
+    ms <= 1'b1;
+    time_threshold <= 16'd800;
+end
+
+reg [7:0] rx_lp_data_values [0:8];
+integer i;
+
+initial begin
+    rx_lp_data_values[0] = 8'h01;
+    rx_lp_data_values[1] = 8'h02;
+    rx_lp_data_values[2] = 8'h03;
+    rx_lp_data_values[3] = 8'h04;
+    rx_lp_data_values[4] = 8'h05;
+    rx_lp_data_values[5] = 8'h06;
+    rx_lp_data_values[6] = 8'h07;
+    rx_lp_data_values[7] = 8'he2;
+    rx_lp_data_values[8] = 8'h8e;
+end
+
+initial begin
+    #100;
+    tx_pid <= 4'b1001; // PID = IN TOKEN
+    tx_addr <= 7'h08;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    @(posedge clk);
+    repeat (3) begin
+        @(posedge clk);
+        tx_lp_ready <= 0;
+        repeat (32) @(posedge clk);
+        tx_lp_ready <= 1;
+    end
+    repeat (136) @(posedge clk);
+    #1;
+    rx_lp_sop <= 1;
+    rx_lp_valid <= 1;
+    rx_lp_data <= 8'b11000011; // PID = DATA0
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (31) @(posedge clk);
+    #1;
+    rx_lp_sop <= 0;
+    rx_lp_valid <= 1;
+    rx_lp_data <= rx_lp_data_values[0];
+    for (i = 1; i <= 8; i = i + 1) begin
+        @(posedge clk);
+        #1;
+        rx_lp_valid <= 0;
+        repeat (31) @(posedge clk);
+        #1;
+        rx_lp_valid <= 1;
+        rx_lp_data <= rx_lp_data_values[i];
+    end
+    rx_lp_eop <= 1;
+    @(posedge clk);
+    #1;
+    rx_lp_valid <= 0;
+    repeat (100) @(posedge clk);
+    tx_pid <= 4'b0010; // PID = ACK
+    tx_addr <= 0;
+    @(posedge clk);
+    #1;
+    tx_valid <= 1;
+    @(posedge clk);
+    #1;
+    tx_valid <= 0;
+    repeat (2) @(posedge clk);
+    tx_lp_ready <= 0;
+    repeat (32) @(posedge clk);
+    tx_lp_ready <= 1;
+end
+`endif
+
+
 
 `ifdef FSDB
 initial begin
-    `ifdef EXAMPLE_CRC5
-        `ifdef EXAMPLE1
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC5_EXAMPLE1.fsdb");
-        `elsif EXAMPLE2
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC5_EXAMPLE2.fsdb");
-        `elsif EXAMPLE3
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC5_EXAMPLE3.fsdb");
-        `elsif BAD1
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC5_BAD1.fsdb");
-        `else
-            $display("Error: EXAMPLE_CRC5 with unknown TB_CRC_MACRO2 macro!\n");
-        `endif
-
-    `elsif EXAMPLE_CRC16
-        `ifdef EXAMPLE1
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC16_EXAMPLE1.fsdb");
-        `elsif EXAMPLE2
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC16_EXAMPLE2.fsdb");
-        `elsif EXAMPLE3
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC16_EXAMPLE3.fsdb");
-        `elsif BAD1
-            $fsdbDumpfile("sim_crc_EXAMPLE_CRC16_BAD1.fsdb");
-        `else
-            $display("Error: EXAMPLE_CRC16 with unknown TB_CRC_MACRO2 macro!\n");
-        `endif
-
+    `ifdef CASE0
+        $fsdbDumpfile("sim_CASE0.fsdb");
+    `elsif CASE1
+        $fsdbDumpfile("sim_CASE1.fsdb");
+    `elsif CASE2
+        $fsdbDumpfile("sim_CASE2.fsdb");
+    `elsif CASE3
+        $fsdbDumpfile("sim_CASE3.fsdb");
     `else
-        $display("Error: Unknown or undefined TB_CRC_MACRO1 macro!\n");
+        $display("error CASE macro.\n")
     `endif
-
-    $fsdbDumpvars;
+	$fsdbDumpvars;
 end
 `endif
-
 
 endmodule

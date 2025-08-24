@@ -1,0 +1,20 @@
+
+FILE_LIST = filelist.f
+FSDB_FILE = tb_usb_link.fsdb
+VDB_DIR = usb_cov.vdb
+
+run_vcs:
+	vcs -R -full64 -v2005 -fsdb -lca -debug_access +define+FSDB -timescale=1ns/1ps \
+        -f $(FILE_LIST) \
+        -cm_dir $(VDB_DIR) \
+        -sverilog \
+        -l com.log
+
+run_verdi:
+	verdi -v2005 -f $(FILE_LIST) -ssf $(FSDB_FILE) &
+
+view_cov:
+	verdi -cov -covdir $(VDB_DIR) &
+
+clean:
+	@rm -rf csrc simv *.vdb *.daidir ucli.key novas* VCS* *dat *.log *Log *.fsdb urgReport

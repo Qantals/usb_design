@@ -3,13 +3,13 @@
 /* multiple transactions with address, timeout and CRC5 test */
 
 // `define CASE00110
-`define CASE22332
+// `define CASE22332
 // `define ADDR_0F0T1F1T // addr test
 
 // select one in these below
 // `define TIMEOUT // timeout for CASE00110, CASE22332 and ADDR0F0T1F1T
 // `define CRC5 // CRC5 ERROR (available case0,1) for CASE00110: FTFTF
-`define CRC16 // CRC16 ERROR (available case1,3) for CASE00110: __FT_, for CASE22332: __FT_
+// `define CRC16 // CRC16 ERROR (available case1,3) for CASE00110: __FT_, for CASE22332: __FT_
 
 module usb_link_top_tb ();
 
@@ -1332,13 +1332,36 @@ initial begin
 end
 `endif
 
-
-
 `ifdef FSDB
 initial begin
-	$fsdbDumpfile("tb_usb_case3.fsdb");
-	$fsdbDumpvars;
+    `ifdef CASE00110
+        `ifdef TIMEOUT
+            $fsdbDumpfile("sim_multitrans_CASE00110_TIMEOUT.fsdb");
+        `elsif CRC5
+            $fsdbDumpfile("sim_multitrans_CASE00110_CRC5.fsdb");
+        `elsif CRC16
+            $fsdbDumpfile("sim_multitrans_CASE00110_CRC16.fsdb");
+        `endif
+
+    `elsif CASE22332
+        `ifdef TIMEOUT
+            $fsdbDumpfile("sim_multitrans_CASE22332_TIMEOUT.fsdb");
+        `elsif CRC16
+            $fsdbDumpfile("sim_multitrans_CASE22332_CRC16.fsdb");
+        `endif
+
+    `elsif ADDR_0F0T1F1T
+        `ifdef TIMEOUT
+            $fsdbDumpfile("sim_multitrans_ADDR_0F0T1F1T_TIMEOUT.fsdb");
+        `endif
+
+    `else
+        $display("Error: Unknown or undefined TB_MULTITRANS_MACRO1 macro!\n");
+    `endif
+
+    $fsdbDumpvars;
 end
 `endif
+
 
 endmodule

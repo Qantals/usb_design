@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`define DELAY3
+// `define DELAY3
 
 module usb_link_top_tb ();
 
@@ -682,14 +682,22 @@ initial begin
 end
 `endif
 
-
-
-
 `ifdef FSDB
 initial begin
-	$fsdbDumpfile("tb_usb_case3.fsdb");
+    `ifdef DELAY0
+        $fsdbDumpfile("sim_delay_DELAY0.fsdb");
+    `elsif DELAY1
+        $fsdbDumpfile("sim_delay_DELAY1.fsdb");
+    `elsif DELAY2
+        $fsdbDumpfile("sim_delay_DELAY2.fsdb");
+    `elsif DELAY3
+        $fsdbDumpfile("sim_delay_DELAY3.fsdb");
+    `else
+        $display("error CASE macro.\n")
+    `endif
 	$fsdbDumpvars;
 end
 `endif
+
 
 endmodule

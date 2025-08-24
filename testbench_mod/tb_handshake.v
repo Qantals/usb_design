@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
-`define HS0
+// `define HS0
 // phy / link layer wait spacing, choose only one these below
 // `define WAIT0 // lp > lt
 // `define WAIT1 // lp < lt
 // `define WAIT2 // lp = lt != 0
 // `define WAIT3 // lp = lt = 0
 // `define WAIT4 // lp = 0, lt != 0
-`define WAIT5 // lp != 0, lt = 0
+// `define WAIT5 // lp != 0, lt = 0
 // no WAIT define: custom (simulate original case)
 
 module usb_link_top_tb ();
@@ -302,7 +302,7 @@ initial begin
     check_data2 <= rx_lp_data;
     rx_lp_valid <= 0;
     repeat (30) @(posedge clk);
-    $stop;
+    $finish;
 end
 `endif
 
@@ -457,7 +457,7 @@ initial begin
     repeat (wait_lp) @(posedge clk);
     tx_lp_ready <= 1;
     repeat (30) @(posedge clk);
-    $stop;
+    $finish;
 end
 `endif
 
@@ -593,7 +593,7 @@ initial begin
     check_data2 <= rx_lp_data;
     rx_lp_valid <= 0;
     repeat (30) @(posedge clk);
-    $stop;
+    $finish;
 end
 `endif
 
@@ -752,18 +752,88 @@ initial begin
     repeat (wait_lp) @(posedge clk);
     tx_lp_ready <= 1;
     repeat (30) @(posedge clk);
-    $stop;
+    $finish;
 end
 `endif
-
-
-
 
 `ifdef FSDB
 initial begin
-	$fsdbDumpfile("tb_usb_case3.fsdb");
-	$fsdbDumpvars;
+    `ifdef HS0
+        `ifdef WAIT0
+            $fsdbDumpfile("sim_handshake_HS0_WAIT0.fsdb");
+        `elsif WAIT1
+            $fsdbDumpfile("sim_handshake_HS0_WAIT1.fsdb");
+        `elsif WAIT2
+            $fsdbDumpfile("sim_handshake_HS0_WAIT2.fsdb");
+        `elsif WAIT3
+            $fsdbDumpfile("sim_handshake_HS0_WAIT3.fsdb");
+        `elsif WAIT4
+            $fsdbDumpfile("sim_handshake_HS0_WAIT4.fsdb");
+        `elsif WAIT5
+            $fsdbDumpfile("sim_handshake_HS0_WAIT5.fsdb");
+        `else
+            $fsdbDumpfile("sim_handshake_HS0.fsdb");
+        `endif
+
+    `elsif HS1
+        `ifdef WAIT0
+            $fsdbDumpfile("sim_handshake_HS1_WAIT0.fsdb");
+        `elsif WAIT1
+            $fsdbDumpfile("sim_handshake_HS1_WAIT1.fsdb");
+        `elsif WAIT2
+            $fsdbDumpfile("sim_handshake_HS1_WAIT2.fsdb");
+        `elsif WAIT3
+            $fsdbDumpfile("sim_handshake_HS1_WAIT3.fsdb");
+        `elsif WAIT4
+            $fsdbDumpfile("sim_handshake_HS1_WAIT4.fsdb");
+        `elsif WAIT5
+            $fsdbDumpfile("sim_handshake_HS1_WAIT5.fsdb");
+        `else
+            $fsdbDumpfile("sim_handshake_HS1.fsdb");
+        `endif
+
+    `elsif HS2
+        `ifdef WAIT0
+            $fsdbDumpfile("sim_handshake_HS2_WAIT0.fsdb");
+        `elsif WAIT1
+            $fsdbDumpfile("sim_handshake_HS2_WAIT1.fsdb");
+        `elsif WAIT2
+            $fsdbDumpfile("sim_handshake_HS2_WAIT2.fsdb");
+        `elsif WAIT3
+            $fsdbDumpfile("sim_handshake_HS2_WAIT3.fsdb");
+        `elsif WAIT4
+            $fsdbDumpfile("sim_handshake_HS2_WAIT4.fsdb");
+        `elsif WAIT5
+            $fsdbDumpfile("sim_handshake_HS2_WAIT5.fsdb");
+        `else
+            $fsdbDumpfile("sim_handshake_HS2.fsdb");
+        `endif
+
+    `elsif HS3
+        `ifdef WAIT0
+            $fsdbDumpfile("sim_handshake_HS3_WAIT0.fsdb");
+        `elsif WAIT1
+            $fsdbDumpfile("sim_handshake_HS3_WAIT1.fsdb");
+        `elsif WAIT2
+            $fsdbDumpfile("sim_handshake_HS3_WAIT2.fsdb");
+        `elsif WAIT3
+            $fsdbDumpfile("sim_handshake_HS3_WAIT3.fsdb");
+        `elsif WAIT4
+            $fsdbDumpfile("sim_handshake_HS3_WAIT4.fsdb");
+        `elsif WAIT5
+            $fsdbDumpfile("sim_handshake_HS3_WAIT5.fsdb");
+        `else
+            $fsdbDumpfile("sim_handshake_HS3.fsdb");
+        `endif
+
+    `else
+        $display("Error: Unknown or undefined TB_HANDSHAKE_MACRO1 macro!\n");
+    `endif
+
+    $fsdbDumpvars;
 end
 `endif
+
+
 
 endmodule

@@ -1,0 +1,162 @@
+# usb_link_top_tb 的宏配置
+TB_MAIN_MACROS = CASE0 CASE1 CASE2 CASE3
+
+# tb_crc 的宏配置
+TB_CRC_MACRO1 = EXAMPLE_CRC5 EXAMPLE_CRC16
+TB_CRC_MACRO2 = EXAMPLE1 EXAMPLE2 EXAMPLE3 BAD1
+
+# tb_delay 的宏配置
+TB_DELAY_MACROS = DELAY0 DELAY1 DELAY2 DELAY3
+
+# tb_cov 的宏配置
+TB_COV_MACROS = CANCLE_RST_DATA ITER_TOKENTX ITER_HANDSHAKETX ITER_TOKENRX CASE01230 MS TIMEOUT MS1
+# TB_COV_MACROS = TEST
+
+# tb_handshake 的宏配置
+TB_HANDSHAKE_MACRO1 = HS0 HS1 HS2 HS3
+TB_HANDSHAKE_MACRO2 = WAIT0 WAIT1 WAIT2 WAIT3 WAIT4 WAIT5
+
+# tb_multitrans 的宏配置
+TB_MULTITRANS_MACRO1 = CASE00110 CASE22332 ADDR_0F0T1F1T
+TB_MULTITRANS_MACRO2_TIMEOUT = TIMEOUT
+TB_MULTITRANS_MACRO2_CRC5 = CRC5
+TB_MULTITRANS_MACRO2_CRC16 = CRC16
+
+# tb_func 的宏配置
+TB_FUNC_MACROS = NONE
+
+# 文件和目录命名规则
+FSDB_FILE = $(TB)_$(MACROS).fsdb
+VDB_DIR = $(TB)_$(MACROS).vdb
+LOG_FILE = $(TB)_$(MACROS).log
+MERGED_DIR= merged_cov.vdb
+
+# 编译和仿真选项
+VCS_OPTS = -R -full64 -v2005 -sverilog -fsdb -lca -debug_access $(MACRO_OPTS) -timescale=1ns/1ps \
+           -cm line+cond+fsm+tgl+path+branch \
+           -cm_dir $(VDB_DIR) \
+           -l $(LOG_FILE)
+
+# 文件列表，仅包含 RTL 代码
+FILE_LIST = filelist.f
+
+# 执行单个测试用例
+run_case:
+	@echo "Running test case: $(TB) with macros $(MACROS)"
+	TB_FILE=../tb/$(TB).v; \
+	vcs $(VCS_OPTS) -f $(FILE_LIST) $$TB_FILE
+
+run_case_sv:
+	@echo "Running test case: $(TB) with macros $(MACROS)"
+	TB_FILE=../tb/$(TB).sv; \
+	vcs $(VCS_OPTS) -f $(FILE_LIST) $$TB_FILE
+
+# 执行主要 tb 的所有测试用例（顺序）
+run_main_all:
+	@for macro in $(TB_MAIN_MACROS); do \
+		$(MAKE) run_case TB=usb_link_top_tb MACROS=$$macro MACRO_OPTS="+define+FSDB+$$macro"; \
+	done
+
+# 执行 tb_crc 的所有测试用例（顺序）
+run_crc_all:
+	@for macro1 in $(TB_CRC_MACRO1); do \
+		for macro2 in $(TB_CRC_MACRO2); do \
+			$(MAKE) run_case TB=tb_crc MACROS="$$macro1+$$macro2" MACRO_OPTS="+define+FSDB+$$macro1 +define+$$macro2"; \
+		done \
+	done
+
+# 执行 tb_delay 的所有测试用例（顺序）
+run_delay_all:
+	@for macro in $(TB_DELAY_MACROS); do \
+		$(MAKE) run_case TB=tb_delay MACROS=$$macro MACRO_OPTS="+define+FSDB+$$macro"; \
+	done
+
+# 执行 tb_cov 的所有测试用例（顺序）
+run_cov_all:
+	@for macro in $(TB_COV_MACROS); do \
+		$(MAKE) run_case TB=tb_cov MACROS=$$macro MACRO_OPTS="+define+FSDB+$$macro"; \
+	done
+
+# 执行 tb_handshake 的所有测试用例（顺序）
+run_handshake_all:
+	@for macro1 in $(TB_HANDSHAKE_MACRO1); do \
+		for macro2 in $(TB_HANDSHAKE_MACRO2); do \
+			$(MAKE) run_case TB=tb_handshake MACROS="$$macro1+$$macro2" MACRO_OPTS="+define+FSDB+$$macro1 +define+$$macro2"; \
+		done \
+	done
+
+# 执行 tb_multitrans 的所有测试用例（顺序）
+run_multitrans_all:
+	@for macro1 in $(TB_MULTITRANS_MACRO1); do \
+		$(MAKE) run_case TB=tb_multitrans MACROS="$$macro1+$(TB_MULTITRANS_MACRO2_TIMEOUT)" MACRO_OPTS="+define+FSDB+$$macro1 +define+$(TB_MULTITRANS_MACRO2_TIMEOUT)"; \
+	done
+	@for macro1 in CASE00110; do \
+		$(MAKE) run_case TB=tb_multitrans MACROS="$$macro1+$(TB_MULTITRANS_MACRO2_CRC5)" MACRO_OPTS="+define+FSDB+$$macro1 +define+$(TB_MULTITRANS_MACRO2_CRC5)"; \
+	done
+	@for macro1 in CASE00110 CASE22332; do \
+		$(MAKE) run_case TB=tb_multitrans MACROS="$$macro1+$(TB_MULTITRANS_MACRO2_CRC16)" MACRO_OPTS="+define+FSDB+$$macro1 +define+$(TB_MULTITRANS_MACRO2_CRC16)"; \
+	done
+
+# 执行 tb_func 的所有测试用例（顺序）
+run_func_all:
+	@for macro in $(TB_FUNC_MACROS); do \
+		$(MAKE) run_case_sv TB=tb_func MACROS=$$macro MACRO_OPTS="+define+FSDB+$$macro"; \
+	done
+
+# 执行所有测试用例
+run_all: run_main_all run_crc_all run_delay_all run_cov_all run_handshake_all run_multitrans_all run_func_all
+
+# 合并所有测试用例的覆盖率数据
+merge_cov:
+	urg -full64 -lca -dir $(foreach macro,$(TB_MAIN_MACROS),usb_link_top_tb_$(macro).vdb) \
+	     $(foreach macro1,$(TB_CRC_MACRO1),$(foreach macro2,$(TB_CRC_MACRO2),tb_crc_$(macro1)+$(macro2).vdb)) \
+	     $(foreach macro,$(TB_DELAY_MACROS),tb_delay_$(macro).vdb) \
+	     $(foreach macro,$(TB_COV_MACROS),tb_cov_$(macro).vdb) \
+	     $(foreach macro1,$(TB_HANDSHAKE_MACRO1),$(foreach macro2,$(TB_HANDSHAKE_MACRO2),tb_handshake_$(macro1)+$(macro2).vdb)) \
+	     $(foreach macro1,$(TB_MULTITRANS_MACRO1),tb_multitrans_$(macro1)+$(TB_MULTITRANS_MACRO2_TIMEOUT).vdb) \
+	     $(foreach macro1,CASE00110,tb_multitrans_$(macro1)+$(TB_MULTITRANS_MACRO2_CRC5).vdb) \
+	     $(foreach macro1,CASE00110 CASE22332,tb_multitrans_$(macro1)+$(TB_MULTITRANS_MACRO2_CRC16).vdb) \
+	     $(foreach macro,$(TB_FUNC_MACROS),tb_func_$(macro).vdb) \
+	     -dbname $(MERGED_DIR)
+
+
+# 在Verdi中查看波形
+run_verdi:
+	verdi -v2005 -sv -f $(FILE_LIST) -ssf $(FSDB_FILE) &
+
+# 在Verdi中查看覆盖率
+view_cov:
+	verdi -cov -covdir $(MERGED_DIR) &
+
+# 清理所有结果
+clean:
+	@echo "Cleaning up..."
+	@rm -rf csrc simv* *.vdb *.daidir ucli.key novas* VCS* *dat *.log *Log *.fsdb $(MERGED_REPORT) urgReport
+
+# 仅保留覆盖率数据
+clean_sim:
+	@echo "Cleaning simulation results, keeping coverage data..."
+	@rm -rf csrc simv* *.daidir ucli.key novas* VCS* *dat *.log *Log *.fsdb
+
+# 帮助信息
+help:
+	@echo "典型使用方法："
+	@echo "1. 执行所有测试用例："
+	@echo "   make run_all"
+	@echo "   该命令会并行执行所有测试平台的测试用例。"
+	@echo "2. 等待所有测试完成并生成覆盖率报告："
+	@echo "   make merge_cov"
+	@echo "   先合并所有测试用例的覆盖率数据，再生成HTML格式的覆盖率报告。"
+	@echo "3. 在Verdi中查看覆盖率："
+	@echo "   make view_cov"
+	@echo "   此命令会在Verdi中打开合并后的覆盖率数据。"
+	@echo "4. 清理所有结果："
+	@echo "   make clean"
+	@echo "   删除编译生成的中间文件、仿真结果、覆盖率数据和报告等。"
+	@echo "5. 仅保留覆盖率数据："
+	@echo "   make clean_sim"
+	@echo "   删除编译生成的中间文件和仿真结果，但保留覆盖率数据。"
+	@echo "6. 执行单个测试用例："
+	@echo "   make run_case TB=<测试平台名> MACROS=<宏定义> MACRO_OPTS=<宏选项>"
+	@echo "   示例：make run_case TB=usb_link_top_tb MACROS=CASE0 MACRO_OPTS=\"+define+FSDB+CASE0\""
+	
